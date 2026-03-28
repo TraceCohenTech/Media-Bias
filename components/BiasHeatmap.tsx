@@ -7,6 +7,14 @@ interface HeatmapData {
 }
 
 const TOPICS = ["tech", "AI", "regulation", "founder/CEO coverage", "politics", "economy", "security", "climate"];
+const SHORT_TOPICS: Record<string, string> = {
+  "founder/CEO coverage": "CEO",
+  "regulation": "reg",
+  "politics": "pol",
+  "economy": "econ",
+  "security": "sec",
+  "climate": "clim",
+};
 
 function getColor(score: number): string {
   if (score > 0.3) return "#22c55e";
@@ -16,46 +24,26 @@ function getColor(score: number): string {
   return "#ef4444";
 }
 
-function getBgOpacity(score: number): string {
-  const abs = Math.abs(score);
-  if (abs > 0.5) return "0.4";
-  if (abs > 0.3) return "0.3";
-  if (abs > 0.1) return "0.2";
-  return "0.1";
-}
-
 export default function BiasHeatmap({ data }: { data: HeatmapData }) {
   const outlets = Object.keys(data);
-
-  if (outlets.length === 0) {
-    return (
-      <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-[#e6edf3] mb-4 font-mono">
-          Bias Heatmap — Tech Topics
-        </h2>
-        <p className="text-[#7d8590] text-sm">No data yet. Click Refresh to fetch feeds.</p>
-      </div>
-    );
-  }
+  if (outlets.length === 0) return null;
 
   return (
-    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-6">
-      <h2 className="text-lg font-semibold text-[#e6edf3] mb-4 font-mono">
-        Bias Heatmap — Tech Topics
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
+      <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+        <table className="w-full text-sm min-w-[500px]">
           <thead>
             <tr>
-              <th className="text-left text-[#7d8590] font-mono font-normal pb-3 pr-4">
+              <th className="text-left text-[#7d8590] font-mono font-normal pb-3 pr-2 text-xs">
                 Outlet
               </th>
               {TOPICS.map((topic) => (
                 <th
                   key={topic}
-                  className="text-center text-[#7d8590] font-mono font-normal pb-3 px-2 text-xs"
+                  className="text-center text-[#7d8590] font-mono font-normal pb-3 px-1 text-[10px] sm:text-xs"
                 >
-                  {topic}
+                  <span className="hidden sm:inline">{topic}</span>
+                  <span className="sm:hidden">{SHORT_TOPICS[topic] || topic}</span>
                 </th>
               ))}
             </tr>
@@ -63,26 +51,26 @@ export default function BiasHeatmap({ data }: { data: HeatmapData }) {
           <tbody>
             {outlets.map((outlet) => (
               <tr key={outlet} className="border-t border-[#1a2332]">
-                <td className="text-[#e6edf3] font-mono py-3 pr-4 font-medium whitespace-nowrap">
+                <td className="text-[#e6edf3] font-mono py-2 sm:py-3 pr-2 font-medium whitespace-nowrap text-xs">
                   {outlet}
                 </td>
                 {TOPICS.map((topic) => {
                   const cell = data[outlet]?.[topic];
                   if (!cell) {
                     return (
-                      <td key={topic} className="text-center py-3 px-2">
-                        <span className="text-[#30363d] text-xs">—</span>
+                      <td key={topic} className="text-center py-2 sm:py-3 px-1">
+                        <span className="text-[#30363d] text-[10px]">—</span>
                       </td>
                     );
                   }
                   const color = getColor(cell.score);
                   return (
-                    <td key={topic} className="text-center py-3 px-2">
+                    <td key={topic} className="text-center py-2 sm:py-3 px-1">
                       <div
-                        className="inline-block rounded-md px-2 py-1 text-xs font-mono font-semibold"
+                        className="inline-block rounded-md px-1 sm:px-2 py-0.5 text-[10px] sm:text-xs font-mono font-semibold"
                         style={{
                           color,
-                          backgroundColor: `${color}${getBgOpacity(cell.score).replace("0.", "")}`,
+                          backgroundColor: `${color}18`,
                         }}
                         title={`${cell.count} articles`}
                       >
@@ -97,15 +85,15 @@ export default function BiasHeatmap({ data }: { data: HeatmapData }) {
           </tbody>
         </table>
       </div>
-      <div className="flex items-center gap-4 mt-4 text-xs text-[#7d8590] font-mono">
+      <div className="flex items-center gap-3 sm:gap-4 mt-3 sm:mt-4 text-[10px] sm:text-xs text-[#7d8590] font-mono">
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-[#ef4444]" /> Negative
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#ef4444]" /> Negative
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-[#3b82f6]" /> Neutral
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#3b82f6]" /> Neutral
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-[#22c55e]" /> Positive
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#22c55e]" /> Positive
         </span>
       </div>
     </div>

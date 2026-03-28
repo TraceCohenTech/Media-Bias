@@ -28,7 +28,6 @@ interface TrendEntry {
 }
 
 export default function SentimentTrends({ data }: { data: TrendEntry[] }) {
-  // Transform data: pivot so each date has outlet columns
   const dateMap: Record<string, any> = {};
   const outlets = new Set<string>();
 
@@ -44,39 +43,29 @@ export default function SentimentTrends({ data }: { data: TrendEntry[] }) {
     a.date.localeCompare(b.date)
   );
 
-  if (chartData.length === 0) {
-    return (
-      <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-[#e6edf3] mb-4 font-mono">
-          Sentiment Trends (90 Days)
-        </h2>
-        <p className="text-[#7d8590] text-sm">No data yet. Click Refresh to fetch feeds.</p>
-      </div>
-    );
-  }
+  if (chartData.length === 0) return null;
 
   return (
-    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-6">
-      <h2 className="text-lg font-semibold text-[#e6edf3] mb-4 font-mono">
-        Sentiment Trends (90 Days)
-      </h2>
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={chartData}>
+    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={chartData} margin={{ left: -10, right: 5, top: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" />
           <XAxis
             dataKey="date"
             stroke="#7d8590"
-            fontSize={11}
+            fontSize={10}
             tickFormatter={(d) => {
               const date = new Date(d);
               return `${date.getMonth() + 1}/${date.getDate()}`;
             }}
+            interval="preserveStartEnd"
           />
           <YAxis
             stroke="#7d8590"
-            fontSize={11}
+            fontSize={10}
             domain={[-1, 1]}
             ticks={[-1, -0.5, 0, 0.5, 1]}
+            width={35}
           />
           <Tooltip
             contentStyle={{
@@ -84,14 +73,14 @@ export default function SentimentTrends({ data }: { data: TrendEntry[] }) {
               border: "1px solid #1a2332",
               borderRadius: "8px",
               fontFamily: "JetBrains Mono, monospace",
-              fontSize: "12px",
+              fontSize: "11px",
               color: "#e6edf3",
             }}
           />
           <Legend
             wrapperStyle={{
               fontFamily: "JetBrains Mono, monospace",
-              fontSize: "12px",
+              fontSize: "10px",
             }}
           />
           {Array.from(outlets).map((outlet) => (

@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "Media Bias Sentiment Monitor",
+  title: "Media Bias Sentiment Monitor — Tech Coverage Analysis",
   description:
-    "Real-time sentiment analysis across major news outlets with bias scoring and charged language detection.",
+    "Analyzing sentiment, charged language, and sensationalism across NYT, WSJ, Wired, The Atlantic, TechCrunch, and The Guardian's technology coverage.",
 };
 
 export default function RootLayout({

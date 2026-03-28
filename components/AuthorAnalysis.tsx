@@ -29,15 +29,9 @@ export default function AuthorAnalysis({ data }: { data: AuthorStat[] }) {
   if (!data?.length) return null;
 
   return (
-    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-6">
-      <h2 className="text-lg font-semibold text-[#e6edf3] mb-1 font-mono">
-        Writer Analysis
-      </h2>
-      <p className="text-[#7d8590] text-xs mb-5 font-mono">
-        Sentiment and BS scores by individual writer (2+ articles)
-      </p>
-
-      <div className="overflow-x-auto">
+    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-[#7d8590] text-xs font-mono">
@@ -53,7 +47,6 @@ export default function AuthorAnalysis({ data }: { data: AuthorStat[] }) {
             {data.slice(0, 30).map((author, i) => {
               const outletColor = OUTLET_COLORS[author.outlet] || "#7d8590";
               const bsColor = getBSColor(author.avg_bs_score);
-
               return (
                 <tr
                   key={i}
@@ -114,6 +107,61 @@ export default function AuthorAnalysis({ data }: { data: AuthorStat[] }) {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {data.slice(0, 20).map((author, i) => {
+          const outletColor = OUTLET_COLORS[author.outlet] || "#7d8590";
+          const bsColor = getBSColor(author.avg_bs_score);
+          return (
+            <div
+              key={i}
+              className="p-3 rounded-lg border border-[#1a2332]"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[#e6edf3] font-mono text-xs font-semibold">
+                  {author.author}
+                </span>
+                <span
+                  className="text-[10px] font-mono font-semibold"
+                  style={{ color: outletColor }}
+                >
+                  {author.outlet}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] font-mono">
+                <span className="text-[#7d8590]">{author.articles} articles</span>
+                <span
+                  style={{
+                    color:
+                      author.avg_sentiment > 0.1
+                        ? "#22c55e"
+                        : author.avg_sentiment < -0.1
+                        ? "#ef4444"
+                        : "#3b82f6",
+                  }}
+                >
+                  Sent: {author.avg_sentiment > 0 ? "+" : ""}
+                  {author.avg_sentiment.toFixed(3)}
+                </span>
+                <span style={{ color: bsColor }}>BS: {author.avg_bs_score}</span>
+              </div>
+              {author.top_topics.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {author.top_topics.map((t) => (
+                    <span
+                      key={t}
+                      className="px-1 py-0.5 rounded text-[9px] font-mono bg-[#1a2332] text-[#7d8590]"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

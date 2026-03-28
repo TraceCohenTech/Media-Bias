@@ -28,19 +28,7 @@ export default function BSDetector({ data }: { data: BSArticle[] }) {
   if (!data?.length) return null;
 
   return (
-    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-6">
-      <div className="flex items-center gap-3 mb-1">
-        <h2 className="text-lg font-semibold text-[#e6edf3] font-mono">
-          BS Detector
-        </h2>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-[#ef444420] text-[#ef4444] font-mono">
-          Top {data.length} flagged
-        </span>
-      </div>
-      <p className="text-[#7d8590] text-xs mb-5 font-mono">
-        Scored by charged language density, sentiment extremity, and clickbait patterns (0-100)
-      </p>
-
+    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
       <div className="space-y-2">
         {data.map((article, i) => {
           const color = getBSColor(article.bs_score);
@@ -49,39 +37,37 @@ export default function BSDetector({ data }: { data: BSArticle[] }) {
           return (
             <div
               key={i}
-              className="flex items-start gap-3 p-3 rounded-lg border border-[#1a2332] hover:border-[#30363d] transition-colors"
+              className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border border-[#1a2332] hover:border-[#30363d] transition-colors"
             >
-              {/* BS Score badge */}
-              <div className="flex-shrink-0 w-16 text-center">
+              <div className="flex-shrink-0 w-12 sm:w-16 text-center">
                 <div
-                  className="text-lg font-bold font-mono"
+                  className="text-base sm:text-lg font-bold font-mono"
                   style={{ color }}
                 >
                   {article.bs_score}
                 </div>
                 <div
-                  className="text-[9px] font-mono font-semibold tracking-wider"
+                  className="text-[8px] sm:text-[9px] font-mono font-semibold tracking-wider"
                   style={{ color }}
                 >
                   {label}
                 </div>
               </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
-                <div className="text-[#e6edf3] text-sm font-mono leading-snug">
+                <div className="text-[#e6edf3] text-xs sm:text-sm font-mono leading-snug">
                   {article.headline}
                 </div>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <span className="text-[#7d8590] text-xs font-mono">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-1">
+                  <span className="text-[#7d8590] text-[10px] sm:text-xs font-mono">
                     {article.outlet}
                   </span>
                   {article.author && (
-                    <span className="text-[#7d8590] text-xs font-mono">
+                    <span className="text-[#7d8590] text-[10px] sm:text-xs font-mono hidden sm:inline">
                       {article.author}
                     </span>
                   )}
-                  <span className="text-[#7d8590] text-xs font-mono">
+                  <span className="text-[#7d8590] text-[10px] sm:text-xs font-mono">
                     {article.date}
                   </span>
                 </div>
@@ -90,7 +76,7 @@ export default function BSDetector({ data }: { data: BSArticle[] }) {
                     {article.flagged_terms.map((term) => (
                       <span
                         key={term}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-mono"
+                        className="px-1 sm:px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-mono"
                         style={{ backgroundColor: `${color}15`, color }}
                       >
                         {term}
@@ -100,10 +86,9 @@ export default function BSDetector({ data }: { data: BSArticle[] }) {
                 )}
               </div>
 
-              {/* Sentiment */}
-              <div className="flex-shrink-0 text-right">
+              <div className="flex-shrink-0">
                 <span
-                  className="text-xs font-mono font-semibold"
+                  className="text-[10px] sm:text-xs font-mono font-semibold"
                   style={{
                     color:
                       article.sentiment_score > 0.1
