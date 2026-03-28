@@ -36,53 +36,96 @@ const POSITIVE_WORDS = new Set([
   "opportunity", "opportunities", "progress", "hope", "hopeful",
   "partnership", "collaboration", "deal", "funding", "investment",
   "approval", "approved", "supports", "backed", "endorses",
+  "unicorn", "decacorn", "ipo", "valuation", "disrupts", "disrupting",
+  "scale", "scaling", "hypergrowth", "product-market fit", "traction",
+  "series a", "series b", "series c", "seed round", "raised",
+  "acquisition", "acquires", "acquired", "merger", "exit",
 ]);
 
 const NEGATIVE_WORDS = new Set([
   "crash", "crashes", "plunges", "plummets", "collapses", "tumbles", "sinks",
-  "slams", "slammed", "blasts", "attacks", "destroys", "devastates",
+  "slams", "slammed", "blasts", "destroys",
   "crisis", "scandal", "controversy", "controversial", "backlash", "outrage",
   "fears", "warns", "warning", "threat", "threatens", "risk", "risks",
   "fails", "failure", "failed", "struggles", "struggling", "declines",
   "drops", "falls", "layoffs", "cuts", "fired", "sued", "sues", "lawsuit",
   "investigation", "probe", "scrutiny", "crackdown", "ban", "bans", "banned",
   "hack", "hacked", "breach", "leak", "leaked", "exposed", "vulnerability",
-  "recession", "downturn", "inflation", "debt", "deficit", "loss", "losses",
-  "alarming", "shocking", "disturbing", "troubling", "dangerous", "deadly",
-  "catastrophic", "disastrous", "worst", "plunge", "exodus", "turmoil",
-  "chaos", "panic", "fraud", "scam", "misleading", "deceptive",
+  "downturn", "debt", "deficit", "loss", "losses",
+  "alarming", "shocking", "disturbing", "troubling",
+  "disastrous", "worst", "plunge", "exodus", "turmoil",
+  "fraud", "scam", "misleading", "deceptive",
   "violates", "violation", "illegal", "guilty", "penalty", "fine", "fined",
   "antitrust", "monopoly", "abuse", "exploits", "exploitation",
-  "misinformation", "disinformation", "propaganda", "censorship",
-  "surveillance", "privacy violation", "data breach",
+  "bubble", "overvalued", "down round", "pivot", "shutters", "shutting down",
+  "burn rate", "runway", "insolvent", "bankrupt", "bankruptcy",
+  "privacy violation", "data breach", "misinformation",
 ]);
 
 const CHARGED_LANGUAGE = new Set([
   "slammed", "blasted", "destroyed", "crushed", "demolished", "eviscerated",
   "game-changing", "revolutionary", "unprecedented", "shocking", "bombshell",
   "controversial", "explosive", "stunning", "dramatic", "massive",
-  "catastrophic", "devastating", "alarming", "terrifying", "nightmare",
+  "devastating", "alarming", "nightmare",
   "brilliant", "genius", "visionary", "legendary", "iconic",
-  "corrupt", "rigged", "weaponized", "radical", "extreme",
-  "doubling down", "fires back", "strikes back", "fights back", "pushes back",
-  "doubles down", "lashes out", "rips", "torches", "obliterates",
+  "doubling down", "fires back", "strikes back", "pushes back",
+  "doubles down", "lashes out",
   "sparks outrage", "sparks backlash", "sparks controversy", "sparks debate",
-  "raises eyebrows", "turns heads", "breaks silence", "drops bombshell",
-  "under fire", "in hot water", "on thin ice", "in the crosshairs",
-  "war", "battle", "fights", "combats", "wages war",
-  "seismic", "tectonic", "paradigm shift", "watershed", "turning point",
-  "existential", "draconian", "orwellian", "dystopian",
+  "raises eyebrows", "under fire", "in hot water",
+  "paradigm shift", "turning point", "disruptive", "disruption",
+  "moonshot", "10x", "100x", "rocket ship", "skyrockets",
+  "kills", "killer", "dead", "death of", "end of",
+  "insane", "crazy", "wild", "mind-blowing", "jaw-dropping",
+  "dominates", "crushes", "obliterates", "demolishes",
+  "hype", "overhyped", "bubble", "mania", "frenzy",
+  "existential threat", "dystopian", "orwellian",
 ]);
 
+// ── Tech/VC relevance filter ──
+const TECH_KEYWORDS = [
+  "tech", "technology", "software", "hardware", "app", "platform", "startup",
+  "ai", "artificial intelligence", "machine learning", "gpt", "llm", "chatbot",
+  "openai", "anthropic", "google", "apple", "meta", "microsoft", "amazon", "nvidia",
+  "ceo", "founder", "co-founder", "chief executive", "chief technology",
+  "venture", "vc", "investor", "funding", "fundraise", "seed", "series a", "series b",
+  "series c", "series d", "valuation", "unicorn", "ipo", "spac",
+  "silicon valley", "san francisco", "y combinator", "andreessen", "sequoia",
+  "benchmark", "accel", "greylock", "kleiner", "index ventures", "lightspeed",
+  "elon musk", "zuckerberg", "bezos", "altman", "nadella", "pichai", "tim cook",
+  "sam altman", "satya nadella", "sundar pichai", "jensen huang",
+  "peter thiel", "marc andreessen", "reid hoffman", "vinod khosla",
+  "saas", "fintech", "biotech", "crypto", "blockchain", "web3", "defi",
+  "cloud", "data", "cybersecurity", "robotics", "autonomous", "self-driving",
+  "semiconductor", "chip", "gpu", "computing", "quantum",
+  "layoff", "hiring", "headcount", "workforce",
+  "acquisition", "acquires", "merger", "deal",
+  "billion", "million", "revenue", "growth", "market cap",
+  "antitrust", "regulation", "ftc", "sec", "doj",
+  "privacy", "surveillance", "encryption", "data breach",
+  "social media", "tiktok", "instagram", "twitter", "x.com", "threads",
+  "streaming", "netflix", "spotify", "youtube",
+  "electric vehicle", "ev", "tesla", "spacex", "rocket",
+];
+
+function isTechRelevant(headline: string, summary: string): boolean {
+  const text = `${headline} ${summary}`.toLowerCase();
+  let matches = 0;
+  for (const kw of TECH_KEYWORDS) {
+    if (text.includes(kw)) matches++;
+    if (matches >= 1) return true;
+  }
+  return false;
+}
+
 const TOPIC_KEYWORDS: Record<string, string[]> = {
-  "tech": ["technology", "software", "hardware", "app", "platform", "digital", "computer", "device", "startup", "silicon valley", "tech"],
-  "AI": ["ai", "artificial intelligence", "machine learning", "chatbot", "gpt", "llm", "neural", "deep learning", "openai", "anthropic", "gemini", "copilot", "generative ai", "claude", "model"],
-  "regulation": ["regulation", "regulate", "law", "legislation", "congress", "fcc", "ftc", "sec", "antitrust", "compliance", "policy", "bill", "act", "ruling", "court", "judge", "legal", "ban", "restrict"],
-  "founder/CEO coverage": ["ceo", "founder", "chief executive", "elon musk", "zuckerberg", "bezos", "altman", "nadella", "pichai", "cook", "tim cook", "satya", "sam altman", "mark zuckerberg", "jeff bezos"],
-  "politics": ["trump", "biden", "congress", "senate", "republican", "democrat", "election", "vote", "political", "white house", "government", "federal", "state department", "pentagon"],
-  "economy": ["economy", "economic", "gdp", "inflation", "recession", "market", "stock", "nasdaq", "dow", "s&p", "fed", "federal reserve", "interest rate", "trade", "tariff", "jobs", "unemployment", "wall street"],
-  "security": ["cybersecurity", "hack", "breach", "malware", "ransomware", "phishing", "encryption", "privacy", "surveillance", "data protection", "security flaw", "vulnerability", "exploit"],
-  "climate": ["climate", "carbon", "emissions", "renewable", "solar", "wind", "ev", "electric vehicle", "sustainability", "green", "fossil fuel", "clean energy", "environment"],
+  "AI / ML": ["ai", "artificial intelligence", "machine learning", "chatbot", "gpt", "llm", "neural", "deep learning", "openai", "anthropic", "gemini", "copilot", "generative ai", "claude", "model training", "large language"],
+  "startups / founders": ["startup", "founder", "co-founder", "y combinator", "accelerator", "incubator", "bootstrapped", "pivot", "product-market fit", "mvp", "launch", "beta"],
+  "VC / funding": ["venture", "vc", "investor", "funding", "fundraise", "seed round", "series a", "series b", "series c", "valuation", "unicorn", "decacorn", "ipo", "spac", "cap table", "term sheet", "down round"],
+  "big tech": ["google", "apple", "meta", "microsoft", "amazon", "nvidia", "alphabet", "faang", "mag7", "magnificent seven", "big tech"],
+  "CEO / billionaire": ["ceo", "chief executive", "billionaire", "elon musk", "zuckerberg", "bezos", "altman", "nadella", "pichai", "cook", "tim cook", "satya", "sam altman", "jensen huang", "peter thiel", "marc andreessen"],
+  "regulation / antitrust": ["regulation", "regulate", "antitrust", "ftc", "sec", "doj", "compliance", "ruling", "court", "judge", "legal", "ban", "restrict", "monopoly", "consent decree"],
+  "cybersecurity": ["cybersecurity", "hack", "breach", "malware", "ransomware", "phishing", "encryption", "privacy", "data protection", "security flaw", "vulnerability", "exploit", "zero-day"],
+  "crypto / web3": ["crypto", "cryptocurrency", "bitcoin", "ethereum", "blockchain", "web3", "defi", "nft", "token", "mining", "exchange"],
 };
 
 function analyzeSentiment(headline: string, summary: string): {
@@ -148,21 +191,15 @@ function analyzeSentiment(headline: string, summary: string): {
 const FEEDS = [
   { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml" },
   { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" },
-  { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml" },
-  { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml" },
   { outlet: "WSJ", url: "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain" },
-  { outlet: "WSJ", url: "https://feeds.content.dowjones.io/public/rss/RSSWorldNews" },
   { outlet: "WSJ", url: "https://feeds.content.dowjones.io/public/rss/RSSWSJD" },
   { outlet: "Wired", url: "https://www.wired.com/feed/rss" },
   { outlet: "Wired", url: "https://www.wired.com/feed/category/business/latest/rss" },
   { outlet: "Wired", url: "https://www.wired.com/feed/category/security/latest/rss" },
   { outlet: "TechCrunch", url: "https://techcrunch.com/feed/" },
   { outlet: "The Guardian", url: "https://www.theguardian.com/technology/rss" },
-  { outlet: "The Guardian", url: "https://www.theguardian.com/us-news/rss" },
   { outlet: "The Guardian", url: "https://www.theguardian.com/business/rss" },
-  { outlet: "The Guardian", url: "https://www.theguardian.com/environment/rss" },
   { outlet: "The Atlantic", url: "https://www.theatlantic.com/feed/channel/technology/" },
-  { outlet: "The Atlantic", url: "https://www.theatlantic.com/feed/channel/politics/" },
   { outlet: "The Atlantic", url: "https://www.theatlantic.com/feed/channel/business/" },
 ];
 
@@ -230,18 +267,20 @@ async function fetchGdeltTimeline(domain: string, outlet: string): Promise<{ dat
   }
 }
 
-async function fetchGdeltArticles(domain: string, outlet: string): Promise<any[]> {
+async function fetchGdeltArticles(query: string, label: string, timespan: string = "120d"): Promise<any[]> {
   try {
-    console.log(`  GDELT articles: ${outlet}`);
-    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=domain:${domain}&mode=artlist&maxrecords=250&timespan=120d&format=json`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    console.log(`  GDELT: ${label} (${timespan})`);
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&maxrecords=250&timespan=${timespan}&format=json`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
     if (!res.ok) {
       console.log(`    FAILED: ${res.status}`);
       return [];
     }
     const text = await res.text();
     const data = JSON.parse(text);
-    return data?.articles || [];
+    const articles = data?.articles || [];
+    console.log(`    ${articles.length} articles`);
+    return articles;
   } catch (err: any) {
     console.log(`    ERROR: ${err.message?.slice(0, 80)}`);
     return [];
@@ -280,23 +319,75 @@ async function main() {
   }
   console.log(`   Total RSS items: ${allRssItems.length}\n`);
 
-  // 2. Fetch GDELT historical articles (with retry + staggered delays to avoid 429)
-  console.log("2. Fetching GDELT articles (120 days)...");
-  const gdeltArticlesByOutlet: Record<string, any[]> = {};
+  // 2. Fetch GDELT historical articles — tech-focused queries per outlet
+  console.log("2. Fetching GDELT articles (tech/startup/VC focus)...");
+  const gdeltAllArticles: { outlet: string; title: string; url: string; date: string; tone: number }[] = [];
+
+  // Tech-specific queries for each outlet domain
+  const GDELT_QUERIES: { query: string; label: string; outlet: string; timespan: string }[] = [];
+  const TECH_SEARCH_TERMS = [
+    "startup OR venture capital OR fundraise",
+    "artificial intelligence OR AI OR machine learning",
+    "tech CEO OR founder OR billion",
+    "silicon valley OR startup funding OR series",
+    "cybersecurity OR data breach OR hack",
+    "antitrust OR regulation tech",
+    "IPO OR acquisition OR merger tech",
+    "crypto OR blockchain OR web3",
+    "cloud computing OR SaaS OR platform",
+  ];
 
   for (const [outlet, domain] of Object.entries(OUTLET_DOMAINS)) {
-    await new Promise((r) => setTimeout(r, 2000)); // 2s between requests
-    const articles = await fetchGdeltArticles(domain, outlet);
-    gdeltArticlesByOutlet[outlet] = articles;
-    console.log(`    ${outlet}: ${articles.length} articles`);
+    // General tech articles from this domain
+    GDELT_QUERIES.push({ query: `domain:${domain} (technology OR tech OR startup)`, label: `${outlet} tech`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} (AI OR "artificial intelligence" OR "machine learning")`, label: `${outlet} AI`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} ("venture capital" OR startup OR fundrais OR "series a" OR "series b")`, label: `${outlet} VC`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} (CEO OR founder OR billionaire OR investor)`, label: `${outlet} CEOs`, outlet, timespan: "120d" });
   }
 
-  // 3. Fetch GDELT tone timelines
-  console.log("\n3. Fetching GDELT tone timelines...");
+  // Also do broad tech queries (any outlet) for wider coverage
+  for (const term of TECH_SEARCH_TERMS) {
+    const domainFilter = Object.values(OUTLET_DOMAINS).map(d => `domain:${d}`).join(" OR ");
+    GDELT_QUERIES.push({ query: `(${domainFilter}) (${term})`, label: `all: ${term.slice(0, 40)}`, outlet: "", timespan: "120d" });
+  }
+
+  for (const gq of GDELT_QUERIES) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const articles = await fetchGdeltArticles(gq.query, gq.label, gq.timespan);
+    for (const art of articles) {
+      if (!art.title || !art.url) continue;
+      // Determine outlet from URL if not set
+      let outlet = gq.outlet;
+      if (!outlet) {
+        for (const [name, domain] of Object.entries(OUTLET_DOMAINS)) {
+          if (art.url.includes(domain)) { outlet = name; break; }
+        }
+      }
+      if (!outlet) continue;
+
+      const rawDate = art.seendate || "";
+      const date = rawDate.length >= 8
+        ? `${rawDate.substring(0, 4)}-${rawDate.substring(4, 6)}-${rawDate.substring(6, 8)}`
+        : "";
+      if (!date) continue;
+
+      gdeltAllArticles.push({
+        outlet,
+        title: art.title,
+        url: art.url,
+        date,
+        tone: parseFloat(art.tone) || 0,
+      });
+    }
+  }
+  console.log(`   Total GDELT articles: ${gdeltAllArticles.length}\n`);
+
+  // 3. Fetch GDELT tone timelines (tech-filtered)
+  console.log("3. Fetching GDELT tone timelines...");
   const toneTimelines: Record<string, { date: string; tone: number }[]> = {};
 
   for (const [outlet, domain] of Object.entries(OUTLET_DOMAINS)) {
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 1500));
     toneTimelines[outlet] = await fetchGdeltTimeline(domain, outlet);
     console.log(`    ${outlet}: ${toneTimelines[outlet].length} data points`);
   }
@@ -341,37 +432,32 @@ async function main() {
   }
 
   // GDELT articles
-  for (const [outlet, articles] of Object.entries(gdeltArticlesByOutlet)) {
-    for (const art of articles) {
-      if (!art.title || !art.url) continue;
-      const normTitle = art.title.toLowerCase().trim();
-      if (seenUrls.has(art.url) || seenHeadlines.has(normTitle)) continue;
-      seenUrls.add(art.url);
-      seenHeadlines.add(normTitle);
+  for (const art of gdeltAllArticles) {
+    const normTitle = art.title.toLowerCase().trim();
+    if (seenUrls.has(art.url) || seenHeadlines.has(normTitle)) continue;
+    seenUrls.add(art.url);
+    seenHeadlines.add(normTitle);
 
-      const rawDate = art.seendate || "";
-      const date = rawDate.length >= 8
-        ? `${rawDate.substring(0, 4)}-${rawDate.substring(4, 6)}-${rawDate.substring(6, 8)}`
-        : "";
-      if (!date) continue;
-
-      allArticles.push({
-        outlet,
-        headline: art.title,
-        summary: "",
-        url: art.url,
-        date,
-        author: "",
-        gdeltTone: parseFloat(art.tone) || undefined,
-      });
-    }
+    allArticles.push({
+      outlet: art.outlet,
+      headline: art.title,
+      summary: "",
+      url: art.url,
+      date: art.date,
+      author: "",
+      gdeltTone: art.tone || undefined,
+    });
   }
 
-  console.log(`   Unique articles: ${allArticles.length}\n`);
+  console.log(`   Unique articles (pre-filter): ${allArticles.length}`);
+
+  // 4b. Filter to tech/startup/VC relevant articles only
+  const techArticles = allArticles.filter((a) => isTechRelevant(a.headline, a.summary));
+  console.log(`   Tech-relevant articles: ${techArticles.length}\n`);
 
   // 5. Run local sentiment analysis
   console.log("5. Running sentiment analysis...");
-  const finalArticles = allArticles.map((a) => {
+  const finalArticles = techArticles.map((a) => {
     const analysis = analyzeSentiment(a.headline, a.summary);
     // BS Score: higher = more sensationalized/biased (0-100)
     // Based on: charged language density, sentiment extremity, headline clickbait patterns

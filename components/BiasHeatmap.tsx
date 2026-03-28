@@ -6,13 +6,16 @@ interface HeatmapData {
   };
 }
 
-const TOPICS = ["tech", "AI", "regulation", "founder/CEO coverage", "politics", "economy", "security", "climate"];
+const TOPICS = ["AI / ML", "startups / founders", "VC / funding", "big tech", "CEO / billionaire", "regulation / antitrust", "cybersecurity", "crypto / web3"];
 const SHORT_TOPICS: Record<string, string> = {
-  "founder/CEO coverage": "CEO",
-  "regulation": "reg",
-  "politics": "pol",
-  "economy": "econ",
-  "security": "sec",
+  "AI / ML": "AI",
+  "startups / founders": "startups",
+  "VC / funding": "VC",
+  "big tech": "big tech",
+  "CEO / billionaire": "CEOs",
+  "regulation / antitrust": "reg",
+  "cybersecurity": "sec",
+  "crypto / web3": "crypto",
   "climate": "clim",
 };
 

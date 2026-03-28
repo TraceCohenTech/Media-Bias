@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import BiasHeatmap from "@/components/BiasHeatmap";
 import ChargedTerms from "@/components/ChargedTerms";
@@ -66,51 +66,9 @@ export default function Home() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Filter tech/AI-focused articles
-  const techArticles = useMemo(() => {
-    if (!data?.recentArticles) return [];
-    return data.recentArticles.filter((a: any) => {
-      try {
-        const topics = JSON.parse(a.topics || "[]");
-        return (
-          topics.includes("tech") ||
-          topics.includes("AI") ||
-          topics.includes("founder/CEO coverage") ||
-          topics.includes("security")
-        );
-      } catch {
-        return false;
-      }
-    });
-  }, [data]);
-
-  const techBsArticles = useMemo(() => {
-    if (!data?.topBsArticles) return [];
-    return data.topBsArticles.filter((a: any) => {
-      const hl = a.headline?.toLowerCase() || "";
-      return (
-        hl.includes("tech") ||
-        hl.includes("ai ") ||
-        hl.includes("startup") ||
-        hl.includes("artificial") ||
-        hl.includes("ceo") ||
-        hl.includes("venture") ||
-        hl.includes("funding") ||
-        hl.includes("google") ||
-        hl.includes("apple") ||
-        hl.includes("meta") ||
-        hl.includes("microsoft") ||
-        hl.includes("amazon") ||
-        hl.includes("openai") ||
-        hl.includes("anthropic") ||
-        hl.includes("crypto") ||
-        hl.includes("software") ||
-        hl.includes("chip") ||
-        hl.includes("data") ||
-        a.flagged_terms?.length > 0
-      );
-    });
-  }, [data]);
+  // All data is pre-filtered to tech/startup/VC only
+  const allArticles = data?.recentArticles || [];
+  const bsArticles = data?.topBsArticles || [];
 
   if (loading) {
     return (
@@ -142,13 +100,14 @@ export default function Home() {
             <span className="text-[#e6edf3]">Sentiment Monitor</span>
           </h1>
           <p className="text-[#7d8590] text-sm sm:text-base mt-2 font-mono leading-relaxed max-w-3xl">
-            How do major news outlets cover technology, startups, and venture
-            capital? This dashboard analyzes{" "}
+            How do major news outlets cover technology, AI, startups, VCs, and
+            the people building the future? This dashboard analyzes{" "}
             <span className="text-[#e6edf3] font-semibold">
-              {data.total_articles} articles
+              {data.total_articles} tech articles
             </span>{" "}
             from 6 major outlets for sentiment, charged language, and
-            sensationalism — with a focus on tech sector coverage.
+            sensationalism. Every article is scored and categorized so you can
+            see exactly how each outlet frames tech coverage.
           </p>
           <p className="text-[#7d8590] text-xs mt-2 font-mono">
             Data collected{" "}
@@ -181,10 +140,10 @@ export default function Home() {
           </div>
           <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4">
             <div className="text-xl sm:text-2xl font-bold text-[#f59e0b] font-mono">
-              {techArticles.length}
+              {data.authorStats?.length || 0}
             </div>
             <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
-              Tech/AI Articles
+              Writers Profiled
             </div>
           </div>
           <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4">
@@ -214,8 +173,8 @@ export default function Home() {
         {/* ── Section 1: Tech Sector Sentiment ── */}
         <section className="mb-10 sm:mb-14">
           <SectionHeader
-            title="Tech Sector Sentiment Trends"
-            description="How positive or negative is each outlet when covering technology, AI, startups, and venture capital? This chart shows the average daily sentiment score per outlet over time. A score of +1.0 is maximally positive coverage, -1.0 is maximally negative, and 0 is neutral. Large divergences between outlets on the same day suggest editorial bias rather than news-driven sentiment."
+            title="Sentiment Trends — Tech, AI, Startups & VC"
+            description="How positive or negative is each outlet when covering technology, AI, startups, founders, and venture capital? This chart shows the average daily sentiment score per outlet over time. A score of +1.0 is maximally positive, -1.0 is maximally negative, and 0 is neutral. When outlets diverge sharply on the same story, that gap reveals editorial framing rather than factual differences."
           />
           <SentimentTrends data={data.trends || []} />
         </section>
@@ -223,8 +182,8 @@ export default function Home() {
         {/* ── Section 2: Tone Over Time ── */}
         <section className="mb-10 sm:mb-14">
           <SectionHeader
-            title="How Outlet Tone Changes Over Time"
-            description="Weekly rolling averages smooth out daily noise and reveal sustained shifts in coverage tone. When an outlet's sentiment line drops or spikes for multiple weeks, it often correlates with editorial positioning on a major story (AI regulation, layoffs, funding cycles). The BS Score chart below tracks sensationalism — how much charged language each outlet uses week over week."
+            title="Tone Shifts Over Time"
+            description="Weekly rolling averages smooth out daily noise and reveal sustained shifts in how outlets cover tech. When sentiment drops for multiple weeks, it often tracks editorial narratives around AI regulation, startup layoffs, or funding winter/recovery. The BS Score chart tracks sensationalism intensity week over week."
           />
           <ToneComparison data={data.toneOverTime || {}} />
         </section>
@@ -232,8 +191,8 @@ export default function Home() {
         {/* ── Section 3: Bias Heatmap + Scores ── */}
         <section className="mb-10 sm:mb-14">
           <SectionHeader
-            title="Outlet Bias by Topic"
-            description="Not all bias is uniform — an outlet may cover AI positively but regulation negatively. This heatmap breaks down average sentiment by outlet and topic. The bias score card shows each outlet's overall lean across all coverage, with article counts and positive/negative/neutral breakdowns."
+            title="Bias by Tech Topic"
+            description="Outlets don't cover all tech equally. One may be bullish on AI but hostile to crypto, or positive on founders but negative on big tech regulation. This heatmap breaks down average sentiment by outlet across 8 tech categories. The bias score card shows overall lean with article breakdowns."
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <BiasHeatmap data={data.heatmap || {}} />
@@ -287,11 +246,7 @@ export default function Home() {
             </div>
           </div>
           <BSDetector
-            data={
-              techBsArticles.length > 5
-                ? techBsArticles
-                : data.topBsArticles || []
-            }
+            data={bsArticles}
           />
         </section>
 
@@ -319,12 +274,12 @@ export default function Home() {
         {/* ── Section 7: Tech/AI Articles Feed ── */}
         <section className="mb-10 sm:mb-14">
           <SectionHeader
-            title="Tech & AI Coverage Feed"
-            description="Every article in our dataset tagged with technology, AI, startup, or founder/CEO topics. Click any headline to read the source article and verify our scoring. Sentiment and BS scores are computed algorithmically — see Methodology below for exactly how."
+            title="All Analyzed Articles"
+            description="Every article in our dataset — all pre-filtered to tech, AI, startups, VCs, founders, and big tech coverage. Sentiment and BS scores are computed algorithmically. See Methodology below for exactly how each score is calculated."
           />
           <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-4 sm:p-6">
             <div className="text-xs text-[#7d8590] font-mono mb-4">
-              Showing {techArticles.length} tech-focused articles
+              {allArticles.length} articles — tech, AI, startups, VCs, founders
             </div>
             {/* Mobile: card layout, Desktop: table */}
             <div className="hidden lg:block overflow-x-auto">
@@ -340,7 +295,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {techArticles.map((article: any, i: number) => (
+                  {allArticles.map((article: any, i: number) => (
                     <tr
                       key={i}
                       className="border-t border-[#1a2332] hover:bg-[#161b22] transition-colors"
@@ -403,7 +358,7 @@ export default function Home() {
             </div>
             {/* Mobile cards */}
             <div className="lg:hidden space-y-2">
-              {techArticles.slice(0, 50).map((article: any, i: number) => (
+              {allArticles.slice(0, 50).map((article: any, i: number) => (
                 <div
                   key={i}
                   className="p-3 rounded-lg border border-[#1a2332]"
@@ -464,21 +419,13 @@ export default function Home() {
         {/* ── Section 8: Source Articles ── */}
         <section className="mb-10 sm:mb-14">
           <SectionHeader
-            title="Source Articles — Verify Yourself"
-            description="Transparency matters. Below are recent headlines with direct links to the original articles. Read the source, check our sentiment score, and decide for yourself if our analysis holds up."
+            title="Source Articles — Verify Our Scoring"
+            description="Transparency is everything. Below are recent tech headlines with our sentiment scores. Read the original coverage, compare it to our score, and decide for yourself. If you think a score is wrong, check the Methodology section to understand why the algorithm scored it that way."
           />
           <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-4 sm:p-6">
             <div className="space-y-3">
               {(data.recentArticles || [])
-                .filter((a: any) => {
-                  try {
-                    const topics = JSON.parse(a.topics || "[]");
-                    return topics.includes("tech") || topics.includes("AI");
-                  } catch {
-                    return false;
-                  }
-                })
-                .slice(0, 25)
+                .slice(0, 30)
                 .map((article: any, i: number) => (
                   <div
                     key={i}
@@ -562,14 +509,14 @@ export default function Home() {
                     <span className="text-[#3b82f6]">
                       rss.nytimes.com/services/xml/rss/nyt/
                     </span>{" "}
-                    (Technology, Business, Politics, Science)
+                    (Technology, Business)
                   </li>
                   <li>
                     <span className="text-[#e6edf3]">WSJ</span> —{" "}
                     <span className="text-[#3b82f6]">
                       feeds.content.dowjones.io/public/rss/
                     </span>{" "}
-                    (Markets, World News, WSJ Digital)
+                    (Markets, WSJ Digital)
                   </li>
                   <li>
                     <span className="text-[#e6edf3]">Wired</span> —{" "}
@@ -581,7 +528,7 @@ export default function Home() {
                     <span className="text-[#3b82f6]">
                       theatlantic.com/feed/channel/
                     </span>{" "}
-                    (Technology, Politics, Business)
+                    (Technology, Business)
                   </li>
                   <li>
                     <span className="text-[#e6edf3]">TechCrunch</span> —{" "}
@@ -592,7 +539,7 @@ export default function Home() {
                     <span className="text-[#3b82f6]">
                       theguardian.com/
                     </span>{" "}
-                    (Technology, US News, Business, Environment)
+                    (Technology, Business)
                   </li>
                 </ul>
               </div>
@@ -660,10 +607,12 @@ export default function Home() {
                 </h3>
                 <p>
                   Articles are tagged with topics based on keyword matching
-                  against 8 categories: tech, AI, regulation, founder/CEO
-                  coverage, politics, economy, security, and climate. Each
-                  category has 10–20 associated keywords. An article can match
-                  multiple topics.
+                  against 8 tech-focused categories: AI/ML, Startups/Founders,
+                  VC/Funding, Big Tech, CEO/Billionaire, Regulation/Antitrust,
+                  Cybersecurity, and Crypto/Web3. Each category has 10–20
+                  associated keywords. An article can match multiple topics.
+                  Only articles matching at least one tech/startup/VC keyword
+                  are included in the dataset.
                 </p>
               </div>
 
