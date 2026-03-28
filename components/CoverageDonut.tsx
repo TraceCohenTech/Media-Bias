@@ -3,94 +3,53 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { OUTLET_COLORS } from "@/lib/constants";
 
-
 interface BiasScore {
   outlet: string;
   total_articles: number;
 }
 
-export default function CoverageDonut({
-  data,
-  total,
-}: {
-  data: BiasScore[];
-  total: number;
-}) {
+export default function CoverageDonut({ data, total }: { data: BiasScore[]; total: number }) {
   if (!data?.length) return null;
-
   const sorted = [...data].sort((a, b) => b.total_articles - a.total_articles);
 
   return (
-    <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4 flex items-center gap-3">
-      <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 relative">
+    <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-4 sm:p-5 flex items-center gap-4">
+      <div className="w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie
-              data={sorted}
-              dataKey="total_articles"
-              nameKey="outlet"
-              cx="50%"
-              cy="50%"
-              innerRadius="60%"
-              outerRadius="90%"
-              strokeWidth={0}
-            >
+            <Pie data={sorted} dataKey="total_articles" nameKey="outlet" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%" strokeWidth={2} stroke="#ffffff">
               {sorted.map((entry) => (
-                <Cell
-                  key={entry.outlet}
-                  fill={OUTLET_COLORS[entry.outlet] || "#666"}
-                />
+                <Cell key={entry.outlet} fill={OUTLET_COLORS[entry.outlet] || "#94a3b8"} />
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{
-                backgroundColor: "#161b22",
-                border: "1px solid #1a2332",
-                borderRadius: "6px",
-                fontFamily: "JetBrains Mono, monospace",
-                fontSize: "11px",
-                color: "#e6edf3",
-              }}
-              formatter={(value: any, name: any) => [
-                `${value} (${((Number(value) / total) * 100).toFixed(0)}%)`,
-                name,
-              ]}
+              contentStyle={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#1a1a2e", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+              formatter={(value: any, name: any) => [`${value} (${((Number(value) / total) * 100).toFixed(0)}%)`, name]}
             />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-lg sm:text-xl font-bold text-[#e6edf3] font-mono">
-              {total}
-            </div>
-            <div className="text-[8px] sm:text-[9px] text-[#7d8590] font-mono">
-              articles
-            </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-[#1a1a2e] font-mono">{total.toLocaleString()}</div>
+            <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">articles</div>
           </div>
         </div>
       </div>
       <div className="flex-1 space-y-1">
-        {sorted.map((entry) => (
+        {sorted.slice(0, 10).map((entry) => (
           <div key={entry.outlet} className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{
-                  backgroundColor: OUTLET_COLORS[entry.outlet] || "#666",
-                }}
-              />
-              <span className="text-[10px] sm:text-xs font-mono text-[#e6edf3]">
-                {entry.outlet}
-              </span>
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: OUTLET_COLORS[entry.outlet] || "#94a3b8" }} />
+              <span className="text-xs sm:text-sm text-[#1a1a2e] font-medium">{entry.outlet}</span>
             </div>
-            <span className="text-[10px] sm:text-xs font-mono text-[#7d8590]">
-              {entry.total_articles}{" "}
-              <span className="text-[#30363d]">
-                ({((entry.total_articles / total) * 100).toFixed(0)}%)
-              </span>
+            <span className="text-xs sm:text-sm font-mono text-[#94a3b8]">
+              {entry.total_articles} <span className="text-[#cbd5e1]">({((entry.total_articles / total) * 100).toFixed(0)}%)</span>
             </span>
           </div>
         ))}
+        {sorted.length > 10 && (
+          <div className="text-xs text-[#94a3b8]">+{sorted.length - 10} more outlets</div>
+        )}
       </div>
     </div>
   );

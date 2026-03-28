@@ -4,13 +4,13 @@ import "./globals.css";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
 };
 
 export const metadata: Metadata = {
-  title: "Media Bias Sentiment Monitor — Tech Coverage Analysis",
+  title: "Media Bias Monitor — How Media Covers Tech & Startups",
   description:
-    "Analyzing sentiment, charged language, and sensationalism across NYT, WSJ, Wired, The Atlantic, TechCrunch, and The Guardian's technology coverage.",
+    "Sentiment analysis of 1,200+ tech articles across 17 major outlets. Every headline scored for bias, sensationalism, and charged language.",
 };
 
 export default function RootLayout({
@@ -22,14 +22,11 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body
-        className="antialiased"
-        style={{ fontFamily: "'JetBrains Mono', monospace" }}
-      >
+      <body className="antialiased">
         {children}
       </body>
     </html>
