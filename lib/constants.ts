@@ -15,5 +15,4 @@ export const OUTLET_COLORS: Record<string, string> = {
   Fortune: "#c026d3",
   CNBC: "#06b6d4",
   "Inc.": "#e11d48",
-  "Hacker News": "#ea580c",
 };

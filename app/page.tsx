@@ -403,10 +403,6 @@ export default function Home() {
                   <li>This measures <em className="text-[#1a1a2e] font-medium">tone and framing</em>, not political bias or editorial intent.</li>
                 </ul>
               </div>
-              <div>
-                <h3 className="text-[#1a1a2e] font-semibold mb-2">Open Source</h3>
-                <p>Full source code and scoring algorithms: <a href="https://github.com/TraceCohenTech/Media-Bias" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">github.com/TraceCohenTech/Media-Bias</a></p>
-              </div>
             </div>
           </div>
         </section>
@@ -416,8 +412,7 @@ export default function Home() {
           <span>Media Bias Sentiment Monitor</span>
           <div className="flex items-center gap-5">
             <a href="#methodology" className="hover:text-[#1a1a2e] transition-colors">Methodology</a>
-            <a href="https://github.com/TraceCohenTech/Media-Bias" target="_blank" rel="noopener noreferrer" className="hover:text-[#1a1a2e] transition-colors">GitHub</a>
-            <a href="https://x.com/Trace_Cohen" target="_blank" rel="noopener noreferrer" className="hover:text-[#1a1a2e] transition-colors">Twitter</a>
+<a href="https://x.com/Trace_Cohen" target="_blank" rel="noopener noreferrer" className="hover:text-[#1a1a2e] transition-colors">Twitter</a>
             <a href="mailto:t@nyvp.com" className="hover:text-[#1a1a2e] transition-colors">t@nyvp.com</a>
           </div>
         </footer>

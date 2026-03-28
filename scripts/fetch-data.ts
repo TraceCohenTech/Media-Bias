@@ -154,11 +154,9 @@ function isTechRelevant(headline: string, summary: string): boolean {
     if (text.includes(kw)) return true;
   }
 
-  // Weak match — need 2+ keyword hits from the general list
-  let matches = 0;
+  // General match — 1 keyword from the tech list is enough
   for (const kw of TECH_KEYWORDS) {
-    if (text.includes(kw)) matches++;
-    if (matches >= 2) return true;
+    if (text.includes(kw)) return true;
   }
   return false;
 }
@@ -260,7 +258,16 @@ const FEEDS = [
   { outlet: "Fortune", url: "https://fortune.com/feed" },
   { outlet: "CNBC", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
   { outlet: "Inc.", url: "https://www.inc.com/rss/" },
-  { outlet: "Hacker News", url: "https://hnrss.org/frontpage" },
+  // Additional feeds for depth
+  { outlet: "The Verge", url: "https://www.theverge.com/tech/rss/index.xml" },
+  { outlet: "The Verge", url: "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml" },
+  { outlet: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/technology-lab" },
+  { outlet: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/gadgets" },
+  { outlet: "CNBC", url: "https://www.cnbc.com/id/19854910/device/rss/rss.html" },
+  { outlet: "Forbes", url: "https://www.forbes.com/innovation/feed/" },
+  { outlet: "Forbes", url: "https://www.forbes.com/technology/feed/" },
+  { outlet: "Fortune", url: "https://fortune.com/feed/fortune-feeds/tech/" },
+  { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/PersonalTech.xml" },
 ];
 
 async function fetchFeed(outlet: string, url: string): Promise<{ title: string; description: string; link: string; pubDate: string }[]> {
@@ -331,18 +338,14 @@ async function fetchGdeltArticles(query: string, label: string, timespan: string
   try {
     console.log(`  GDELT: ${label} (${timespan})`);
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&maxrecords=250&timespan=${timespan}&format=json`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
-    if (!res.ok) {
-      console.log(`    FAILED: ${res.status}`);
-      return [];
-    }
-    const text = await res.text();
-    const data = JSON.parse(text);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) { console.log(`    ${res.status}`); return []; }
+    const data = JSON.parse(await res.text());
     const articles = data?.articles || [];
     console.log(`    ${articles.length} articles`);
     return articles;
   } catch (err: any) {
-    console.log(`    ERROR: ${err.message?.slice(0, 80)}`);
+    console.log(`    ERROR: ${err.message?.slice(0, 60)}`);
     return [];
   }
 }
@@ -360,6 +363,10 @@ const OUTLET_DOMAINS: Record<string, string> = {
   "Forbes": "forbes.com",
   "Fortune": "fortune.com",
   "CNBC": "cnbc.com",
+  "Engadget": "engadget.com",
+  "CNET": "cnet.com",
+  "Inc.": "inc.com",
+  "The Next Web": "thenextweb.com",
 };
 
 function getWeekStart(dateStr: string): string {
@@ -403,22 +410,15 @@ async function main() {
     "cloud computing OR SaaS OR platform",
   ];
 
+  // One combined tech query per outlet — fast and effective
   for (const [outlet, domain] of Object.entries(OUTLET_DOMAINS)) {
-    // General tech articles from this domain
-    GDELT_QUERIES.push({ query: `domain:${domain} (technology OR tech OR startup)`, label: `${outlet} tech`, outlet, timespan: "120d" });
-    GDELT_QUERIES.push({ query: `domain:${domain} (AI OR "artificial intelligence" OR "machine learning")`, label: `${outlet} AI`, outlet, timespan: "120d" });
-    GDELT_QUERIES.push({ query: `domain:${domain} ("venture capital" OR startup OR fundrais OR "series a" OR "series b")`, label: `${outlet} VC`, outlet, timespan: "120d" });
-    GDELT_QUERIES.push({ query: `domain:${domain} (CEO OR founder OR billionaire OR investor)`, label: `${outlet} CEOs`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} (tech OR AI OR startup OR CEO OR founder OR venture OR software OR crypto)`, label: `${outlet} tech`, outlet, timespan: "120d" });
   }
 
-  // Also do broad tech queries (any outlet) for wider coverage
-  for (const term of TECH_SEARCH_TERMS) {
-    const domainFilter = Object.values(OUTLET_DOMAINS).map(d => `domain:${d}`).join(" OR ");
-    GDELT_QUERIES.push({ query: `(${domainFilter}) (${term})`, label: `all: ${term.slice(0, 40)}`, outlet: "", timespan: "120d" });
-  }
+  console.log(`   ${GDELT_QUERIES.length} GDELT queries queued\n`);
 
   for (const gq of GDELT_QUERIES) {
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
     const articles = await fetchGdeltArticles(gq.query, gq.label, gq.timespan);
     for (const art of articles) {
       if (!art.title || !art.url) continue;
