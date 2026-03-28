@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import BiasHeatmap from "@/components/BiasHeatmap";
 import ChargedTerms from "@/components/ChargedTerms";
-import BiasScores from "@/components/BiasScores";
 import BSDetector from "@/components/BSDetector";
 import AuthorAnalysis from "@/components/AuthorAnalysis";
+import CoverageDonut from "@/components/CoverageDonut";
 
-const SentimentTrends = dynamic(() => import("@/components/SentimentTrends"), {
+const SentimentScatter = dynamic(
+  () => import("@/components/SentimentScatter"),
+  { ssr: false }
+);
+const OutletRadar = dynamic(() => import("@/components/OutletRadar"), {
   ssr: false,
 });
-const ToneComparison = dynamic(() => import("@/components/ToneComparison"), {
+const OutletRankings = dynamic(() => import("@/components/OutletRankings"), {
   ssr: false,
 });
 const WordTrends = dynamic(() => import("@/components/WordTrends"), {
@@ -33,22 +37,27 @@ interface DashboardData {
   toneOverTime: any;
 }
 
-function SectionHeader({
+function Section({
   title,
   description,
+  children,
 }: {
   title: string;
   description: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="mb-4">
-      <h2 className="text-lg sm:text-xl font-bold text-[#e6edf3] font-mono">
-        {title}
-      </h2>
-      <p className="text-[#7d8590] text-xs sm:text-sm mt-1 font-mono leading-relaxed max-w-3xl">
-        {description}
-      </p>
-    </div>
+    <section className="mb-12 sm:mb-16">
+      <div className="mb-4 sm:mb-5">
+        <h2 className="text-lg sm:text-xl font-bold text-[#e6edf3] font-mono">
+          {title}
+        </h2>
+        <p className="text-[#7d8590] text-xs sm:text-sm mt-1 font-mono leading-relaxed max-w-3xl">
+          {description}
+        </p>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -66,15 +75,28 @@ export default function Home() {
       .catch(() => setLoading(false));
   }, []);
 
-  // All data is pre-filtered to tech/startup/VC only
-  const allArticles = data?.recentArticles || [];
-  const bsArticles = data?.topBsArticles || [];
+  // Prepare scatter data from recent articles
+  const scatterData = useMemo(() => {
+    if (!data?.recentArticles) return [];
+    return data.recentArticles.map((a: any) => ({
+      outlet: a.outlet,
+      headline: a.headline,
+      sentiment_score: a.sentiment_score,
+      bs_score: a.bs_score || 0,
+      author: a.author,
+    }));
+  }, [data]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#080b12] flex items-center justify-center">
-        <div className="text-[#3b82f6] font-mono text-lg animate-pulse">
-          Loading media bias data...
+        <div className="text-center">
+          <div className="text-[#3b82f6] font-mono text-lg animate-pulse mb-2">
+            Loading analysis...
+          </div>
+          <div className="text-[#7d8590] font-mono text-xs">
+            304+ tech articles across 6 outlets
+          </div>
         </div>
       </div>
     );
@@ -83,282 +105,205 @@ export default function Home() {
   if (!data) {
     return (
       <div className="min-h-screen bg-[#080b12] flex items-center justify-center">
-        <div className="text-[#ef4444] font-mono text-lg">
-          Failed to load data.
-        </div>
+        <div className="text-[#ef4444] font-mono">Failed to load data.</div>
       </div>
     );
   }
 
+  // Find most positive and most negative outlets
+  const sorted = [...(data.biasScores || [])].sort(
+    (a: any, b: any) => b.bias_score - a.bias_score
+  );
+  const mostPositive = sorted[0];
+  const mostNegative = sorted[sorted.length - 1];
+
   return (
     <main className="min-h-screen bg-[#080b12] text-[#e6edf3]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
-        {/* ── Hero ── */}
-        <div className="mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight font-mono">
-            <span className="text-[#3b82f6]">Media Bias</span>{" "}
-            <span className="text-[#e6edf3]">Sentiment Monitor</span>
+        {/* ═══════ HERO ═══════ */}
+        <div className="mb-10 sm:mb-14">
+          <div className="flex items-start gap-2 mb-3">
+            <div className="w-2 h-2 mt-2 rounded-full bg-[#3b82f6] animate-pulse" />
+            <span className="text-[10px] sm:text-xs font-mono text-[#3b82f6] tracking-wider uppercase">
+              Live Analysis
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight font-mono leading-tight">
+            <span className="text-[#e6edf3]">How Media Covers</span>
+            <br />
+            <span className="text-[#3b82f6]">Tech & Startups</span>
           </h1>
-          <p className="text-[#7d8590] text-sm sm:text-base mt-2 font-mono leading-relaxed max-w-3xl">
-            How do major news outlets cover technology, AI, startups, VCs, and
-            the people building the future? This dashboard analyzes{" "}
+          <p className="text-[#7d8590] text-sm sm:text-base mt-3 font-mono leading-relaxed max-w-2xl">
+            Sentiment analysis of{" "}
             <span className="text-[#e6edf3] font-semibold">
-              {data.total_articles} tech articles
+              {data.total_articles} articles
             </span>{" "}
-            from 6 major outlets for sentiment, charged language, and
-            sensationalism. Every article is scored and categorized so you can
-            see exactly how each outlet frames tech coverage.
+            across NYT, WSJ, Wired, The Atlantic, TechCrunch, and The Guardian.
+            Every headline scored for bias, sensationalism, and charged language.
           </p>
-          <p className="text-[#7d8590] text-xs mt-2 font-mono">
-            Data collected{" "}
-            {new Date(data.generated_at).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}{" "}
-            via RSS feeds and GDELT Project
-          </p>
+
+          {/* Key finding callout */}
+          {mostPositive && mostNegative && (
+            <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="px-3 py-2 rounded-lg bg-[#22c55e08] border border-[#22c55e20]">
+                <span className="text-[10px] sm:text-xs font-mono text-[#22c55e]">
+                  Most positive on tech:{" "}
+                  <span className="font-semibold">
+                    {mostPositive.outlet}
+                  </span>{" "}
+                  ({mostPositive.bias_score > 0 ? "+" : ""}
+                  {mostPositive.bias_score.toFixed(3)})
+                </span>
+              </div>
+              <div className="px-3 py-2 rounded-lg bg-[#ef444408] border border-[#ef444420]">
+                <span className="text-[10px] sm:text-xs font-mono text-[#ef4444]">
+                  Most negative on tech:{" "}
+                  <span className="font-semibold">
+                    {mostNegative.outlet}
+                  </span>{" "}
+                  ({mostNegative.bias_score.toFixed(3)})
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ── Stats ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-8 sm:mb-12">
-          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4">
-            <div className="text-xl sm:text-2xl font-bold text-[#3b82f6] font-mono">
-              {data.total_articles}
+        {/* ═══════ STATS + DONUT ═══════ */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12 sm:mb-16">
+          <CoverageDonut
+            data={data.biasScores || []}
+            total={data.total_articles}
+          />
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4 flex flex-col justify-center">
+              <div className="text-2xl sm:text-3xl font-bold text-[#3b82f6] font-mono">
+                {data.biasScores?.length || 0}
+              </div>
+              <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
+                Outlets Tracked
+              </div>
             </div>
-            <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
-              Articles Analyzed
+            <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4 flex flex-col justify-center">
+              <div className="text-2xl sm:text-3xl font-bold text-[#f59e0b] font-mono">
+                {data.authorStats?.length || 0}
+              </div>
+              <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
+                Writers Profiled
+              </div>
+            </div>
+            <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4 flex flex-col justify-center">
+              <div className="text-2xl sm:text-3xl font-bold text-[#ef4444] font-mono">
+                {data.topBsArticles?.[0]?.bs_score || 0}
+              </div>
+              <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
+                Peak BS Score
+              </div>
+            </div>
+            <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4 flex flex-col justify-center">
+              <div className="text-2xl sm:text-3xl font-bold text-[#22c55e] font-mono">
+                8
+              </div>
+              <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
+                Topic Categories
+              </div>
             </div>
           </div>
           <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4">
-            <div className="text-xl sm:text-2xl font-bold text-[#e6edf3] font-mono">
-              {data.biasScores?.length || 0}
+            <div className="text-xs font-mono text-[#7d8590] mb-2">Data Sources</div>
+            <div className="space-y-1.5 text-[10px] sm:text-xs font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+                <span className="text-[#e6edf3]">RSS Feeds</span>
+                <span className="text-[#7d8590]">12 endpoints</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+                <span className="text-[#e6edf3]">GDELT Project</span>
+                <span className="text-[#7d8590]">120-day archive</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" />
+                <span className="text-[#e6edf3]">NLP Scoring</span>
+                <span className="text-[#7d8590]">300+ keywords</span>
+              </div>
             </div>
-            <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
-              Outlets Tracked
-            </div>
-          </div>
-          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4">
-            <div className="text-xl sm:text-2xl font-bold text-[#f59e0b] font-mono">
-              {data.authorStats?.length || 0}
-            </div>
-            <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
-              Writers Profiled
-            </div>
-          </div>
-          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-4">
-            <div className="text-xl sm:text-2xl font-bold text-[#ef4444] font-mono">
-              {data.topBsArticles?.[0]?.bs_score || 0}
-            </div>
-            <div className="text-[10px] sm:text-xs text-[#7d8590] font-mono">
-              Peak BS Score
+            <div className="mt-2 pt-2 border-t border-[#1a2332] text-[10px] font-mono text-[#7d8590]">
+              Updated{" "}
+              {new Date(data.generated_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </div>
           </div>
         </div>
 
-        {/* ── Feed indicators ── */}
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-8 sm:mb-12">
-          {(data.biasScores || []).map((b: any) => (
-            <div
-              key={b.outlet}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-mono border border-[#22c55e33] text-[#22c55e]"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-              {b.outlet}
-              <span className="text-[#7d8590] ml-0.5">{b.total_articles}</span>
-            </div>
-          ))}
-        </div>
+        {/* ═══════ 1. THE LANDSCAPE — Scatter Plot ═══════ */}
+        <Section
+          title="The Landscape"
+          description="Every article plotted by sentiment (x-axis) and sensationalism (y-axis). Each dot is a headline. Clusters reveal editorial patterns — which outlets live in the negative-sensational quadrant vs. the positive-measured zone?"
+        >
+          <SentimentScatter data={scatterData} />
+        </Section>
 
-        {/* ── Section 1: Tech Sector Sentiment ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="Sentiment Trends — Tech, AI, Startups & VC"
-            description="How positive or negative is each outlet when covering technology, AI, startups, founders, and venture capital? This chart shows the average daily sentiment score per outlet over time. A score of +1.0 is maximally positive, -1.0 is maximally negative, and 0 is neutral. When outlets diverge sharply on the same story, that gap reveals editorial framing rather than factual differences."
-          />
-          <SentimentTrends data={data.trends || []} />
-        </section>
-
-        {/* ── Section 2: Tone Over Time ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="Tone Shifts Over Time"
-            description="Weekly rolling averages smooth out daily noise and reveal sustained shifts in how outlets cover tech. When sentiment drops for multiple weeks, it often tracks editorial narratives around AI regulation, startup layoffs, or funding winter/recovery. The BS Score chart tracks sensationalism intensity week over week."
-          />
-          <ToneComparison data={data.toneOverTime || {}} />
-        </section>
-
-        {/* ── Section 3: Bias Heatmap + Scores ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="Bias by Tech Topic"
-            description="Outlets don't cover all tech equally. One may be bullish on AI but hostile to crypto, or positive on founders but negative on big tech regulation. This heatmap breaks down average sentiment by outlet across 8 tech categories. The bias score card shows overall lean with article breakdowns."
-          />
+        {/* ═══════ 2. OUTLET FINGERPRINTS — Radar + Rankings ═══════ */}
+        <Section
+          title="Outlet Fingerprints"
+          description="Each outlet has a unique coverage profile. The radar shows how sentiment varies by topic — an outlet might be bullish on AI but hostile to crypto regulation. The rankings show overall lean and sensationalism level."
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <BiasHeatmap data={data.heatmap || {}} />
-            <BiasScores data={data.biasScores || []} />
+            <OutletRadar data={data.heatmap || {}} />
+            <OutletRankings data={data.biasScores || []} />
           </div>
-        </section>
+        </Section>
 
-        {/* ── Section 4: BS Detector ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="BS Detector — Sensationalism Scores"
-            description={"Every article is scored 0\u2013100 for sensationalism based on three factors: (1) charged language density \u2014 how many loaded words like \u201Cslammed,\u201D \u201Crevolutionary,\u201D or \u201Cunprecedented\u201D appear; (2) sentiment extremity \u2014 how far the score deviates from neutral; and (3) clickbait patterns \u2014 question headlines, exclamation marks, ALL CAPS. Higher scores mean more editorializing and less straight reporting."}
-          />
-          {/* BS by outlet summary */}
-          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
-            <h3 className="text-sm font-semibold text-[#e6edf3] mb-3 font-mono">
-              Average BS Score by Outlet
-            </h3>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
-              {[...data.biasScores]
-                .sort(
-                  (a: any, b: any) =>
-                    (b.avg_bs_score || 0) - (a.avg_bs_score || 0)
-                )
-                .map((b: any) => {
-                  const bsColor =
-                    b.avg_bs_score >= 40
-                      ? "#ef4444"
-                      : b.avg_bs_score >= 25
-                      ? "#f59e0b"
-                      : b.avg_bs_score >= 15
-                      ? "#3b82f6"
-                      : "#22c55e";
-                  return (
-                    <div
-                      key={b.outlet}
-                      className="text-center p-2 sm:p-3 rounded-lg border border-[#1a2332]"
-                    >
-                      <div
-                        className="text-2xl sm:text-3xl font-bold font-mono"
-                        style={{ color: bsColor }}
-                      >
-                        {b.avg_bs_score || 0}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-[#e6edf3] font-mono mt-1 truncate">
-                        {b.outlet}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+        {/* ═══════ 3. TOPIC DEEP DIVE — Heatmap ═══════ */}
+        <Section
+          title="Topic Deep Dive"
+          description="How does each outlet cover specific tech topics? This heatmap shows average sentiment across AI/ML, startups, VC funding, big tech, CEO coverage, regulation, cybersecurity, and crypto. Red = negative framing, blue = neutral, green = positive."
+        >
+          <BiasHeatmap data={data.heatmap || {}} />
+        </Section>
+
+        {/* ═══════ 4. BS DETECTOR ═══════ */}
+        <Section
+          title="BS Detector"
+          description={"Every article scored 0\u2013100 for sensationalism. The formula: charged language density \u00D7 15 + sentiment extremity \u00D7 30 + clickbait patterns + ALL CAPS penalty. The histogram shows how articles distribute. Most tech coverage is measured, but a meaningful tail pushes into sensationalism territory."}
+        >
           <BSDetector
-            data={bsArticles}
+            data={data.topBsArticles || []}
+            allArticles={scatterData}
           />
-        </section>
+        </Section>
 
-        {/* ── Section 5: Charged Language ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="Charged Language Analysis"
-            description={"Which outlets use the most loaded language? Charged terms are words designed to trigger emotional reactions rather than inform \u2014 \u201Cslammed,\u201D \u201Cdestroyed,\u201D \u201Cgame-changing,\u201D \u201Cunprecedented.\u201D We track ~300 such terms across all articles. The ranked lists show each outlet\u2019s most-used charged words, and the chart shows global trends over time."}
-          />
-          <div className="space-y-4 sm:space-y-6">
+        {/* ═══════ 5. CHARGED LANGUAGE ═══════ */}
+        <Section
+          title="Charged Language"
+          description={"Words designed to trigger emotional reactions rather than inform \u2014 \u201Cslammed,\u201D \u201Cgame-changing,\u201D \u201Cunprecedented,\u201D \u201Cdisruption.\u201D We track ~300 such terms. The ranked lists show each outlet\u2019s most-used charged words."}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <ChargedTerms data={data.chargedTerms || {}} />
             <WordTrends data={data.wordTrends || []} />
           </div>
-        </section>
+        </Section>
 
-        {/* ── Section 6: Writer Analysis ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="Writer-Level Analysis"
-            description={"Bias isn\u2019t just institutional \u2014 individual writers have their own patterns. This table shows authors with 2+ articles in our dataset, ranked by their average BS score. High BS + negative sentiment often indicates opinion-heavy coverage framed as news. Writers with consistently neutral scores tend to be straight news reporters."}
-          />
+        {/* ═══════ 6. WRITERS ═══════ */}
+        <Section
+          title="Writer Analysis"
+          description={"Bias isn\u2019t just institutional \u2014 individual writers have patterns. Authors with 2+ articles ranked by BS score. High BS + negative sentiment often means opinion dressed as news."}
+        >
           <AuthorAnalysis data={data.authorStats || []} />
-        </section>
+        </Section>
 
-        {/* ── Section 7: Tech/AI Articles Feed ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="All Analyzed Articles"
-            description="Every article in our dataset — all pre-filtered to tech, AI, startups, VCs, founders, and big tech coverage. Sentiment and BS scores are computed algorithmically. See Methodology below for exactly how each score is calculated."
-          />
-          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-4 sm:p-6">
-            <div className="text-xs text-[#7d8590] font-mono mb-4">
-              {allArticles.length} articles — tech, AI, startups, VCs, founders
-            </div>
-            {/* Mobile: card layout, Desktop: table */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-[#7d8590] text-xs font-mono">
-                    <th className="text-left pb-3 pr-3">Outlet</th>
-                    <th className="text-left pb-3 pr-3">Date</th>
-                    <th className="text-left pb-3 pr-3">Headline</th>
-                    <th className="text-left pb-3 pr-3">Author</th>
-                    <th className="text-center pb-3 pr-3">Sentiment</th>
-                    <th className="text-center pb-3">BS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allArticles.map((article: any, i: number) => (
-                    <tr
-                      key={i}
-                      className="border-t border-[#1a2332] hover:bg-[#161b22] transition-colors"
-                    >
-                      <td className="py-2 pr-3 text-[#e6edf3] font-mono text-xs font-semibold whitespace-nowrap">
-                        {article.outlet}
-                      </td>
-                      <td className="py-2 pr-3 text-[#7d8590] text-xs whitespace-nowrap">
-                        {article.date}
-                      </td>
-                      <td className="py-2 pr-3 text-xs max-w-md">
-                        <span className="text-[#e6edf3] line-clamp-2">
-                          {article.headline}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-3 text-[#7d8590] text-xs whitespace-nowrap max-w-[120px] truncate">
-                        {article.author || "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-center">
-                        <span
-                          className="inline-block px-2 py-0.5 rounded text-xs font-mono font-semibold"
-                          style={{
-                            color:
-                              article.sentiment_score > 0.1
-                                ? "#22c55e"
-                                : article.sentiment_score < -0.1
-                                ? "#ef4444"
-                                : "#3b82f6",
-                            backgroundColor:
-                              article.sentiment_score > 0.1
-                                ? "#22c55e15"
-                                : article.sentiment_score < -0.1
-                                ? "#ef444415"
-                                : "#3b82f615",
-                          }}
-                        >
-                          {article.sentiment_score > 0 ? "+" : ""}
-                          {article.sentiment_score?.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="py-2 text-center">
-                        <span
-                          className="text-xs font-mono font-semibold"
-                          style={{
-                            color:
-                              article.bs_score >= 40
-                                ? "#ef4444"
-                                : article.bs_score >= 20
-                                ? "#f59e0b"
-                                : "#22c55e",
-                          }}
-                        >
-                          {article.bs_score || 0}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* ═══════ 7. ARTICLE FEED ═══════ */}
+        <Section
+          title="All Analyzed Articles"
+          description="Every article in the dataset with scores. All pre-filtered to tech, AI, startups, VCs, founders, and big tech coverage."
+        >
+          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
             {/* Mobile cards */}
             <div className="lg:hidden space-y-2">
-              {allArticles.slice(0, 50).map((article: any, i: number) => (
+              {(data.recentArticles || []).slice(0, 50).map((article: any, i: number) => (
                 <div
                   key={i}
                   className="p-3 rounded-lg border border-[#1a2332]"
@@ -392,10 +337,10 @@ export default function Home() {
                         className="text-[10px] font-mono font-semibold"
                         style={{
                           color:
-                            article.bs_score >= 40
-                              ? "#ef4444"
-                              : article.bs_score >= 20
+                            article.bs_score >= 20
                               ? "#f59e0b"
+                              : article.bs_score >= 10
+                              ? "#3b82f6"
                               : "#22c55e",
                         }}
                       >
@@ -413,305 +358,165 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── Section 8: Source Articles ── */}
-        <section className="mb-10 sm:mb-14">
-          <SectionHeader
-            title="Source Articles — Verify Our Scoring"
-            description="Transparency is everything. Below are recent tech headlines with our sentiment scores. Read the original coverage, compare it to our score, and decide for yourself. If you think a score is wrong, check the Methodology section to understand why the algorithm scored it that way."
-          />
-          <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-4 sm:p-6">
-            <div className="space-y-3">
-              {(data.recentArticles || [])
-                .slice(0, 30)
-                .map((article: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 py-2 border-b border-[#1a2332] last:border-0"
-                  >
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] sm:text-xs font-mono font-semibold text-[#3b82f6] w-24 sm:w-28">
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[#7d8590] text-xs font-mono">
+                    <th className="text-left pb-3 pr-3">Outlet</th>
+                    <th className="text-left pb-3 pr-3">Date</th>
+                    <th className="text-left pb-3 pr-3">Headline</th>
+                    <th className="text-left pb-3 pr-3">Author</th>
+                    <th className="text-center pb-3 pr-3">Sentiment</th>
+                    <th className="text-center pb-3">BS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.recentArticles || []).map((article: any, i: number) => (
+                    <tr
+                      key={i}
+                      className="border-t border-[#1a2332] hover:bg-[#161b22] transition-colors"
+                    >
+                      <td className="py-2 pr-3 text-[#e6edf3] font-mono text-xs font-semibold whitespace-nowrap">
                         {article.outlet}
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-mono text-[#7d8590]">
+                      </td>
+                      <td className="py-2 pr-3 text-[#7d8590] text-xs whitespace-nowrap">
                         {article.date}
-                      </span>
-                    </div>
-                    <div className="text-xs font-mono text-[#e6edf3] flex-1">
-                      {article.headline}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span
-                        className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded"
-                        style={{
-                          color:
-                            article.sentiment_score > 0.1
-                              ? "#22c55e"
-                              : article.sentiment_score < -0.1
-                              ? "#ef4444"
-                              : "#3b82f6",
-                          backgroundColor:
-                            article.sentiment_score > 0.1
-                              ? "#22c55e15"
-                              : article.sentiment_score < -0.1
-                              ? "#ef444415"
-                              : "#3b82f615",
-                        }}
-                      >
-                        {article.sentiment_score > 0 ? "+" : ""}
-                        {article.sentiment_score?.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                      </td>
+                      <td className="py-2 pr-3 text-xs max-w-md">
+                        <span className="text-[#e6edf3] line-clamp-2">
+                          {article.headline}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3 text-[#7d8590] text-xs whitespace-nowrap max-w-[120px] truncate">
+                        {article.author || "\u2014"}
+                      </td>
+                      <td className="py-2 pr-3 text-center">
+                        <span
+                          className="inline-block px-2 py-0.5 rounded text-xs font-mono font-semibold"
+                          style={{
+                            color:
+                              article.sentiment_score > 0.1
+                                ? "#22c55e"
+                                : article.sentiment_score < -0.1
+                                ? "#ef4444"
+                                : "#3b82f6",
+                            backgroundColor:
+                              article.sentiment_score > 0.1
+                                ? "#22c55e15"
+                                : article.sentiment_score < -0.1
+                                ? "#ef444415"
+                                : "#3b82f615",
+                          }}
+                        >
+                          {article.sentiment_score > 0 ? "+" : ""}
+                          {article.sentiment_score?.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="py-2 text-center">
+                        <span
+                          className="text-xs font-mono font-semibold"
+                          style={{
+                            color:
+                              article.bs_score >= 20
+                                ? "#f59e0b"
+                                : article.bs_score >= 10
+                                ? "#3b82f6"
+                                : "#22c55e",
+                          }}
+                        >
+                          {article.bs_score || 0}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </section>
+        </Section>
 
-        {/* ── Section 9: Methodology ── */}
+        {/* ═══════ METHODOLOGY ═══════ */}
         <section className="mb-10 sm:mb-14" id="methodology">
           <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-4 sm:p-8">
             <h2 className="text-lg sm:text-xl font-bold text-[#e6edf3] font-mono mb-4">
               Methodology & Data Sources
             </h2>
-            <div className="space-y-6 text-xs sm:text-sm font-mono text-[#7d8590] leading-relaxed">
+            <div className="space-y-5 text-xs sm:text-sm font-mono text-[#7d8590] leading-relaxed">
               <div>
                 <h3 className="text-[#e6edf3] font-semibold mb-2">
                   Data Collection
                 </h3>
                 <p>
-                  Articles are collected from public RSS feeds published by each
-                  outlet. RSS feeds are freely available XML endpoints that news
-                  organizations publish for syndication. We also pull from the{" "}
-                  <a
-                    href="https://www.gdeltproject.org/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#3b82f6] hover:underline"
-                  >
-                    GDELT Project
-                  </a>{" "}
-                  — the largest open database of human society, monitoring the
-                  world&apos;s broadcast, print, and web news in 100+ languages.
-                  GDELT data extends coverage back 120 days.
+                  Articles are collected from public RSS feeds (Technology and Business sections only) and the{" "}
+                  <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener noreferrer" className="text-[#3b82f6] hover:underline">GDELT Project</a>{" "}
+                  open database. Every article must match at least one of 70+ tech/startup/VC keywords to be included. Non-tech content (politics, climate, war, sports) is filtered out.
                 </p>
               </div>
 
               <div>
                 <h3 className="text-[#e6edf3] font-semibold mb-2">
-                  RSS Feed Sources
+                  Sentiment Scoring (-1.0 to +1.0)
                 </h3>
-                <ul className="space-y-1">
-                  <li>
-                    <span className="text-[#e6edf3]">NYT</span> —{" "}
-                    <span className="text-[#3b82f6]">
-                      rss.nytimes.com/services/xml/rss/nyt/
-                    </span>{" "}
-                    (Technology, Business)
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">WSJ</span> —{" "}
-                    <span className="text-[#3b82f6]">
-                      feeds.content.dowjones.io/public/rss/
-                    </span>{" "}
-                    (Markets, WSJ Digital)
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">Wired</span> —{" "}
-                    <span className="text-[#3b82f6]">wired.com/feed/</span>{" "}
-                    (Main, Business, Security)
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">The Atlantic</span> —{" "}
-                    <span className="text-[#3b82f6]">
-                      theatlantic.com/feed/channel/
-                    </span>{" "}
-                    (Technology, Business)
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">TechCrunch</span> —{" "}
-                    <span className="text-[#3b82f6]">techcrunch.com/feed/</span>
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">The Guardian</span> —{" "}
-                    <span className="text-[#3b82f6]">
-                      theguardian.com/
-                    </span>{" "}
-                    (Technology, Business)
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-[#e6edf3] font-semibold mb-2">
-                  Sentiment Scoring
-                </h3>
-                <p>
-                  Each headline and summary is scored using keyword-based natural
-                  language processing. The algorithm maintains curated lexicons
-                  of ~100 positive terms (e.g., &quot;breakthrough,&quot;
-                  &quot;growth,&quot; &quot;innovative&quot;) and ~100 negative
-                  terms (e.g., &quot;crisis,&quot; &quot;scandal,&quot;
-                  &quot;plummets&quot;). The sentiment score is calculated as:
-                </p>
+                <p>Headlines and summaries are scored using curated lexicons of ~100 positive terms (breakthrough, funding, innovative) and ~100 negative terms (layoffs, scandal, plummets). Multi-word phrases receive double weight.</p>
                 <div className="bg-[#161b22] rounded-lg p-3 mt-2 text-[#e6edf3] text-xs">
                   score = (positive_matches - negative_matches) / max(total_matches, 3)
                 </div>
-                <p className="mt-2">
-                  Scores range from -1.0 (maximally negative) to +1.0
-                  (maximally positive). Articles with no matched keywords score
-                  near 0 (neutral). Multi-word phrases receive double weight.
-                </p>
               </div>
 
               <div>
                 <h3 className="text-[#e6edf3] font-semibold mb-2">
-                  BS Score (Sensationalism Index)
+                  BS Score (0-100)
                 </h3>
-                <p>
-                  The BS Score (0–100) measures how sensationalized an article&apos;s
-                  framing is, independent of whether the content is positive or
-                  negative. It combines:
-                </p>
-                <ul className="mt-2 space-y-1 ml-4 list-disc">
-                  <li>
-                    <span className="text-[#e6edf3]">
-                      Charged language density
-                    </span>{" "}
-                    — count of loaded terms × 15 (from a curated list of ~300
-                    terms like &quot;slammed,&quot; &quot;game-changing,&quot;
-                    &quot;unprecedented&quot;)
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">Sentiment extremity</span>{" "}
-                    — |score| × 30 (the further from neutral, the higher the
-                    penalty)
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">Clickbait patterns</span>{" "}
-                    — +20 for question headlines, exclamation marks,
-                    &quot;you won&apos;t believe,&quot; &quot;here&apos;s why&quot;
-                  </li>
-                  <li>
-                    <span className="text-[#e6edf3]">ALL CAPS words</span> — +10
-                    per word with 3+ consecutive capitals
-                  </li>
+                <ul className="space-y-1 ml-4 list-disc">
+                  <li><span className="text-[#e6edf3]">Charged language</span> {"\u2014"} count of loaded terms {"\u00D7"} 15</li>
+                  <li><span className="text-[#e6edf3]">Sentiment extremity</span> {"\u2014"} |score| {"\u00D7"} 30</li>
+                  <li><span className="text-[#e6edf3]">Clickbait patterns</span> {"\u2014"} +20 for question headlines, exclamation marks</li>
+                  <li><span className="text-[#e6edf3]">ALL CAPS</span> {"\u2014"} +10 per word with 3+ consecutive capitals</li>
                 </ul>
               </div>
 
               <div>
                 <h3 className="text-[#e6edf3] font-semibold mb-2">
-                  Topic Detection
+                  Topic Categories
                 </h3>
-                <p>
-                  Articles are tagged with topics based on keyword matching
-                  against 8 tech-focused categories: AI/ML, Startups/Founders,
-                  VC/Funding, Big Tech, CEO/Billionaire, Regulation/Antitrust,
-                  Cybersecurity, and Crypto/Web3. Each category has 10–20
-                  associated keywords. An article can match multiple topics.
-                  Only articles matching at least one tech/startup/VC keyword
-                  are included in the dataset.
-                </p>
+                <p>8 tech-focused categories: AI/ML, Startups/Founders, VC/Funding, Big Tech, CEO/Billionaire, Regulation/Antitrust, Cybersecurity, Crypto/Web3. Each has 10-20 keywords. Articles can match multiple topics.</p>
               </div>
 
               <div>
                 <h3 className="text-[#e6edf3] font-semibold mb-2">
-                  Limitations & Caveats
+                  Limitations
                 </h3>
                 <ul className="space-y-1.5 ml-4 list-disc">
-                  <li>
-                    RSS feeds typically contain 2–4 weeks of recent articles.
-                    Historical depth comes from GDELT, which may have gaps.
-                  </li>
-                  <li>
-                    Keyword-based sentiment analysis cannot detect sarcasm, irony,
-                    or nuanced framing. A headline about &quot;regulation fears&quot; may
-                    be reporting on others&apos; fears, not expressing fear itself.
-                  </li>
-                  <li>
-                    The BS Score measures framing intensity, not factual accuracy.
-                    A high BS score means sensationalized language — the
-                    underlying reporting may still be accurate.
-                  </li>
-                  <li>
-                    Article volume differs across outlets. Outlets with fewer
-                    articles in our dataset have less statistically reliable
-                    averages.
-                  </li>
-                  <li>
-                    GDELT-sourced articles may lack summaries, resulting in
-                    lower-confidence sentiment scores for those entries.
-                  </li>
-                  <li>
-                    This tool measures <em className="text-[#e6edf3]">tone and framing</em>, not
-                    political bias, factual accuracy, or editorial intent.
-                  </li>
+                  <li>Keyword sentiment cannot detect sarcasm, irony, or nuanced framing.</li>
+                  <li>BS Score measures framing intensity, not factual accuracy. High BS does not mean the article is wrong.</li>
+                  <li>RSS feeds hold ~2 weeks of articles. Historical depth depends on GDELT availability.</li>
+                  <li>Article volume varies by outlet, affecting statistical reliability of smaller samples.</li>
+                  <li>This measures <em className="text-[#e6edf3]">tone and framing</em>, not political bias or editorial intent.</li>
                 </ul>
               </div>
 
               <div>
                 <h3 className="text-[#e6edf3] font-semibold mb-2">
-                  Open Source & Verification
+                  Open Source
                 </h3>
                 <p>
-                  The complete source code, data collection scripts, and scoring
-                  algorithms are available on{" "}
-                  <a
-                    href="https://github.com/TraceCohenTech/Media-Bias"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#3b82f6] hover:underline"
-                  >
-                    GitHub
-                  </a>
-                  . All RSS feed URLs are public endpoints. GDELT data is freely
-                  available at{" "}
-                  <a
-                    href="https://www.gdeltproject.org/api/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#3b82f6] hover:underline"
-                  >
-                    gdeltproject.org/api
-                  </a>
-                  . You can run the data collection yourself to verify results.
+                  Full source code, data scripts, and scoring algorithms:{" "}
+                  <a href="https://github.com/TraceCohenTech/Media-Bias" target="_blank" rel="noopener noreferrer" className="text-[#3b82f6] hover:underline">github.com/TraceCohenTech/Media-Bias</a>
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Footer ── */}
+        {/* ═══════ FOOTER ═══════ */}
         <footer className="pt-6 border-t border-[#1a2332] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#7d8590] font-mono">
           <span>Media Bias Sentiment Monitor</span>
           <div className="flex items-center gap-4">
-            <a href="#methodology" className="hover:text-[#e6edf3] transition-colors">
-              Methodology
-            </a>
-            <a
-              href="https://github.com/TraceCohenTech/Media-Bias"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#e6edf3] transition-colors"
-            >
-              GitHub
-            </a>
-            <a
-              href="https://x.com/Trace_Cohen"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#e6edf3] transition-colors"
-            >
-              Twitter
-            </a>
-            <a
-              href="mailto:t@nyvp.com"
-              className="hover:text-[#e6edf3] transition-colors"
-            >
-              t@nyvp.com
-            </a>
+            <a href="#methodology" className="hover:text-[#e6edf3] transition-colors">Methodology</a>
+            <a href="https://github.com/TraceCohenTech/Media-Bias" target="_blank" rel="noopener noreferrer" className="hover:text-[#e6edf3] transition-colors">GitHub</a>
+            <a href="https://x.com/Trace_Cohen" target="_blank" rel="noopener noreferrer" className="hover:text-[#e6edf3] transition-colors">Twitter</a>
+            <a href="mailto:t@nyvp.com" className="hover:text-[#e6edf3] transition-colors">t@nyvp.com</a>
           </div>
         </footer>
       </div>
