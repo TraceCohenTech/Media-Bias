@@ -1,164 +1,139 @@
 "use client";
 
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  ReferenceArea,
-  Cell,
-} from "recharts";
-
-const OUTLET_COLORS: Record<string, string> = {
-  NYT: "#3b82f6",
-  WSJ: "#f59e0b",
-  Wired: "#ef4444",
-  "The Atlantic": "#10b981",
-  TechCrunch: "#8b5cf6",
-  "The Guardian": "#06b6d4",
-};
+import { OUTLET_COLORS } from "@/lib/constants";
 
 interface Article {
   outlet: string;
   headline: string;
   sentiment_score: number;
   bs_score: number;
-  author?: string;
-}
-
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.[0]) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="bg-[#161b22] border border-[#1a2332] rounded-lg p-3 max-w-xs shadow-xl">
-      <div className="text-[#e6edf3] text-xs font-mono leading-snug mb-1.5">
-        {d.headline}
-      </div>
-      <div className="flex items-center gap-2 text-[10px] font-mono">
-        <span style={{ color: OUTLET_COLORS[d.outlet] || "#7d8590" }}>
-          {d.outlet}
-        </span>
-        <span className="text-[#7d8590]">
-          Sentiment: {d.sentiment_score > 0 ? "+" : ""}{d.sentiment_score.toFixed(2)}
-        </span>
-        <span className="text-[#7d8590]">BS: {d.bs_score}</span>
-      </div>
-    </div>
-  );
 }
 
 export default function SentimentScatter({ data }: { data: Article[] }) {
   if (!data?.length) return null;
 
-  const outlets = Array.from(new Set(data.map((d) => d.outlet)));
-
-  // Quadrant counts
-  const quadrants = { tl: 0, tr: 0, bl: 0, br: 0 };
+  // Group by outlet and compute stats
+  const outletStats: Record<
+    string,
+    { pos: number; neg: number; neu: number; total: number; avgBs: number; bsSum: number }
+  > = {};
   data.forEach((d) => {
-    const neg = d.sentiment_score < 0;
-    const high = d.bs_score >= 12;
-    if (neg && high) quadrants.tl++;
-    else if (!neg && high) quadrants.tr++;
-    else if (neg && !high) quadrants.bl++;
-    else quadrants.br++;
+    if (!outletStats[d.outlet])
+      outletStats[d.outlet] = { pos: 0, neg: 0, neu: 0, total: 0, avgBs: 0, bsSum: 0 };
+    const s = outletStats[d.outlet];
+    s.total++;
+    s.bsSum += d.bs_score;
+    if (d.sentiment_score > 0.1) s.pos++;
+    else if (d.sentiment_score < -0.1) s.neg++;
+    else s.neu++;
   });
+  for (const s of Object.values(outletStats)) {
+    s.avgBs = Math.round(s.bsSum / s.total);
+  }
+
+  const outlets = Object.entries(outletStats).sort(
+    (a, b) => b[1].total - a[1].total
+  );
 
   return (
     <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
-        {outlets.map((outlet) => (
-          <div key={outlet} className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: OUTLET_COLORS[outlet] || "#666" }}
-            />
-            <span className="text-[10px] sm:text-xs font-mono text-[#7d8590]">
-              {outlet}
-            </span>
-          </div>
-        ))}
-      </div>
+      <div className="space-y-3">
+        {outlets.map(([outlet, stats]) => {
+          const color = OUTLET_COLORS[outlet] || "#7d8590";
+          const posPct = Math.round((stats.pos / stats.total) * 100);
+          const neuPct = Math.round((stats.neu / stats.total) * 100);
+          const negPct = Math.round((stats.neg / stats.total) * 100);
 
-      <ResponsiveContainer width="100%" height={400}>
-        <ScatterChart margin={{ top: 10, right: 10, bottom: 30, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" />
+          return (
+            <div key={outlet} className="p-3 sm:p-4 rounded-lg border border-[#1a2332]">
+              {/* Outlet header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-sm sm:text-base font-mono font-semibold text-[#e6edf3]">
+                    {outlet}
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-mono text-[#7d8590]">
+                    {stats.total} articles
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="text-right">
+                    <div className="text-[10px] font-mono text-[#7d8590]">Avg BS</div>
+                    <div
+                      className="text-sm font-mono font-bold"
+                      style={{
+                        color:
+                          stats.avgBs >= 20
+                            ? "#f59e0b"
+                            : stats.avgBs >= 10
+                            ? "#3b82f6"
+                            : "#22c55e",
+                      }}
+                    >
+                      {stats.avgBs}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          {/* Quadrant backgrounds */}
-          <ReferenceArea x1={-1} x2={0} y1={12} y2={40} fill="#ef4444" fillOpacity={0.03} />
-          <ReferenceArea x1={0} x2={1} y1={12} y2={40} fill="#f59e0b" fillOpacity={0.03} />
-          <ReferenceArea x1={-1} x2={0} y1={0} y2={12} fill="#3b82f6" fillOpacity={0.03} />
-          <ReferenceArea x1={0} x2={1} y1={0} y2={12} fill="#22c55e" fillOpacity={0.03} />
+              {/* Sentiment bar */}
+              <div className="flex h-6 sm:h-7 rounded-md overflow-hidden mb-1.5">
+                {posPct > 0 && (
+                  <div
+                    className="flex items-center justify-center text-[10px] sm:text-xs font-mono font-semibold text-[#080b12] transition-all"
+                    style={{
+                      width: `${posPct}%`,
+                      backgroundColor: "#22c55e",
+                      minWidth: posPct > 3 ? undefined : "20px",
+                    }}
+                  >
+                    {posPct > 8 && `${posPct}%`}
+                  </div>
+                )}
+                {neuPct > 0 && (
+                  <div
+                    className="flex items-center justify-center text-[10px] sm:text-xs font-mono font-semibold text-[#e6edf3] transition-all"
+                    style={{
+                      width: `${neuPct}%`,
+                      backgroundColor: "#1e3a5f",
+                    }}
+                  >
+                    {neuPct > 8 && `${neuPct}%`}
+                  </div>
+                )}
+                {negPct > 0 && (
+                  <div
+                    className="flex items-center justify-center text-[10px] sm:text-xs font-mono font-semibold text-[#080b12] transition-all"
+                    style={{
+                      width: `${negPct}%`,
+                      backgroundColor: "#ef4444",
+                      minWidth: negPct > 3 ? undefined : "20px",
+                    }}
+                  >
+                    {negPct > 8 && `${negPct}%`}
+                  </div>
+                )}
+              </div>
 
-          <XAxis
-            type="number"
-            dataKey="sentiment_score"
-            domain={[-0.6, 0.6]}
-            stroke="#7d8590"
-            fontSize={10}
-            tickFormatter={(v) => (v > 0 ? `+${v}` : `${v}`)}
-            label={{
-              value: "Sentiment Score",
-              position: "bottom",
-              offset: 15,
-              style: { fill: "#7d8590", fontSize: 10, fontFamily: "JetBrains Mono" },
-            }}
-          />
-          <YAxis
-            type="number"
-            dataKey="bs_score"
-            domain={[0, 35]}
-            stroke="#7d8590"
-            fontSize={10}
-            width={30}
-            label={{
-              value: "BS Score",
-              angle: -90,
-              position: "insideLeft",
-              offset: 10,
-              style: { fill: "#7d8590", fontSize: 10, fontFamily: "JetBrains Mono" },
-            }}
-          />
-
-          <ReferenceLine x={0} stroke="#30363d" strokeWidth={1} />
-          <ReferenceLine y={12} stroke="#30363d" strokeWidth={1} strokeDasharray="4 4" />
-
-          <Tooltip content={<CustomTooltip />} />
-
-          <Scatter data={data} fillOpacity={0.6}>
-            {data.map((entry, idx) => (
-              <Cell
-                key={idx}
-                fill={OUTLET_COLORS[entry.outlet] || "#666"}
-                r={4}
-              />
-            ))}
-          </Scatter>
-        </ScatterChart>
-      </ResponsiveContainer>
-
-      {/* Quadrant labels */}
-      <div className="grid grid-cols-2 gap-2 mt-3 text-[10px] sm:text-xs font-mono">
-        <div className="flex items-center justify-between px-2 py-1.5 rounded bg-[#ef444408] border border-[#ef444415]">
-          <span className="text-[#ef4444]">Negative + Sensational</span>
-          <span className="text-[#7d8590]">{quadrants.tl}</span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1.5 rounded bg-[#f59e0b08] border border-[#f59e0b15]">
-          <span className="text-[#f59e0b]">Positive + Sensational</span>
-          <span className="text-[#7d8590]">{quadrants.tr}</span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1.5 rounded bg-[#3b82f608] border border-[#3b82f615]">
-          <span className="text-[#3b82f6]">Negative + Measured</span>
-          <span className="text-[#7d8590]">{quadrants.bl}</span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1.5 rounded bg-[#22c55e08] border border-[#22c55e15]">
-          <span className="text-[#22c55e]">Positive + Measured</span>
-          <span className="text-[#7d8590]">{quadrants.br}</span>
-        </div>
+              {/* Legend counts */}
+              <div className="flex gap-3 text-[10px] sm:text-xs font-mono">
+                <span className="text-[#22c55e]">
+                  {stats.pos} positive
+                </span>
+                <span className="text-[#7d8590]">
+                  {stats.neu} neutral
+                </span>
+                <span className="text-[#ef4444]">
+                  {stats.neg} negative
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -240,8 +240,8 @@ export default function Home() {
 
         {/* ═══════ 1. THE LANDSCAPE — Scatter Plot ═══════ */}
         <Section
-          title="The Landscape"
-          description="Every article plotted by sentiment (x-axis) and sensationalism (y-axis). Each dot is a headline. Clusters reveal editorial patterns — which outlets live in the negative-sensational quadrant vs. the positive-measured zone?"
+          title="Sentiment Breakdown by Outlet"
+          description="What percentage of each outlet's tech coverage is positive, neutral, or negative? Wider green bars = more favorable tech coverage. Wider red bars = more critical framing."
         >
           <SentimentScatter data={scatterData} />
         </Section>
@@ -268,7 +268,7 @@ export default function Home() {
         {/* ═══════ 4. BS DETECTOR ═══════ */}
         <Section
           title="BS Detector"
-          description={"Every article scored 0\u2013100 for sensationalism. The formula: charged language density \u00D7 15 + sentiment extremity \u00D7 30 + clickbait patterns + ALL CAPS penalty. The histogram shows how articles distribute. Most tech coverage is measured, but a meaningful tail pushes into sensationalism territory."}
+          description={"Every headline scored 0\u2013100 for sensationalism. Clean = straight reporting. Low = slight editorializing. Moderate = clearly opinionated framing. High = heavy charged language and clickbait. See which articles triggered the highest scores and why."}
         >
           <BSDetector
             data={data.topBsArticles || []}

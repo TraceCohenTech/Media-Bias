@@ -189,6 +189,7 @@ function analyzeSentiment(headline: string, summary: string): {
 // ── RSS Feed Fetching ──
 
 const FEEDS = [
+  // Original 6 outlets
   { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml" },
   { outlet: "NYT", url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" },
   { outlet: "WSJ", url: "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain" },
@@ -201,6 +202,19 @@ const FEEDS = [
   { outlet: "The Guardian", url: "https://www.theguardian.com/business/rss" },
   { outlet: "The Atlantic", url: "https://www.theatlantic.com/feed/channel/technology/" },
   { outlet: "The Atlantic", url: "https://www.theatlantic.com/feed/channel/business/" },
+  // New outlets — tech & business focused
+  { outlet: "The Verge", url: "https://www.theverge.com/rss/index.xml" },
+  { outlet: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index" },
+  { outlet: "VentureBeat", url: "https://feeds.feedburner.com/venturebeat/SZYF" },
+  { outlet: "Engadget", url: "https://www.engadget.com/rss.xml" },
+  { outlet: "CNET", url: "https://www.cnet.com/rss/news/" },
+  { outlet: "The Next Web", url: "https://thenextweb.com/feed/" },
+  { outlet: "Forbes", url: "https://www.forbes.com/business/feed/" },
+  { outlet: "Forbes", url: "https://www.forbes.com/entrepreneurs/feed/" },
+  { outlet: "Fortune", url: "https://fortune.com/feed" },
+  { outlet: "CNBC", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
+  { outlet: "Inc.", url: "https://www.inc.com/rss/" },
+  { outlet: "Hacker News", url: "https://hnrss.org/frontpage" },
 ];
 
 async function fetchFeed(outlet: string, url: string): Promise<{ title: string; description: string; link: string; pubDate: string }[]> {
@@ -294,6 +308,12 @@ const OUTLET_DOMAINS: Record<string, string> = {
   "The Atlantic": "theatlantic.com",
   "TechCrunch": "techcrunch.com",
   "The Guardian": "theguardian.com",
+  "The Verge": "theverge.com",
+  "Ars Technica": "arstechnica.com",
+  "VentureBeat": "venturebeat.com",
+  "Forbes": "forbes.com",
+  "Fortune": "fortune.com",
+  "CNBC": "cnbc.com",
 };
 
 function getWeekStart(dateStr: string): string {

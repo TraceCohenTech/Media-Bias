@@ -1,24 +1,6 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-
-const OUTLET_COLORS: Record<string, string> = {
-  NYT: "#3b82f6",
-  WSJ: "#f59e0b",
-  Wired: "#ef4444",
-  "The Atlantic": "#10b981",
-  TechCrunch: "#8b5cf6",
-  "The Guardian": "#06b6d4",
-};
+import { OUTLET_COLORS } from "@/lib/constants";
 
 interface BSArticle {
   outlet: string;
@@ -58,84 +40,70 @@ export default function BSDetector({
 }) {
   if (!data?.length) return null;
 
-  // Build histogram from all articles
-  const buckets = [
-    { label: "0-4", min: 0, max: 4 },
-    { label: "5-9", min: 5, max: 9 },
-    { label: "10-14", min: 10, max: 14 },
-    { label: "15-19", min: 15, max: 19 },
-    { label: "20-24", min: 20, max: 24 },
-    { label: "25-29", min: 25, max: 29 },
-    { label: "30+", min: 30, max: 100 },
-  ];
-
-  const histData = buckets.map((b) => {
-    const count = (allArticles || []).filter(
-      (a) => a.bs_score >= b.min && a.bs_score <= b.max
-    ).length;
-    return { ...b, count };
-  });
+  // Compute distribution summary
+  const total = allArticles?.length || 0;
+  const clean = allArticles?.filter((a) => a.bs_score < 10).length || 0;
+  const low = allArticles?.filter((a) => a.bs_score >= 10 && a.bs_score < 20).length || 0;
+  const moderate = allArticles?.filter((a) => a.bs_score >= 20 && a.bs_score < 30).length || 0;
+  const high = allArticles?.filter((a) => a.bs_score >= 30).length || 0;
 
   return (
     <div className="bg-[#0d1117] border border-[#1a2332] rounded-xl p-3 sm:p-6">
-      {/* Histogram */}
-      {allArticles && allArticles.length > 0 && (
+      {/* Distribution summary — visual gauges */}
+      {total > 0 && (
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-[#e6edf3] mb-1 font-mono">
-            BS Score Distribution
-          </h3>
-          <p className="text-[10px] sm:text-xs text-[#7d8590] font-mono mb-3">
-            How articles distribute across sensationalism levels
-          </p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={histData} margin={{ left: -10, right: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" vertical={false} />
-              <XAxis
-                dataKey="label"
-                stroke="#7d8590"
-                fontSize={10}
-                tick={{ fontFamily: "JetBrains Mono" }}
-              />
-              <YAxis stroke="#7d8590" fontSize={10} width={30} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#161b22",
-                  border: "1px solid #1a2332",
-                  borderRadius: "8px",
-                  fontFamily: "JetBrains Mono, monospace",
-                  fontSize: "11px",
-                  color: "#e6edf3",
-                }}
-              />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {histData.map((entry, idx) => (
-                  <Cell
-                    key={idx}
-                    fill={
-                      entry.min >= 30
-                        ? "#ef4444"
-                        : entry.min >= 20
-                        ? "#f59e0b"
-                        : entry.min >= 10
-                        ? "#3b82f6"
-                        : "#22c55e"
-                    }
-                    fillOpacity={0.7}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
+            {[
+              { label: "Clean", sublabel: "Score 0-9", count: clean, color: "#22c55e" },
+              { label: "Low", sublabel: "Score 10-19", count: low, color: "#3b82f6" },
+              { label: "Moderate", sublabel: "Score 20-29", count: moderate, color: "#f59e0b" },
+              { label: "High", sublabel: "Score 30+", count: high, color: "#ef4444" },
+            ].map((bucket) => (
+              <div
+                key={bucket.label}
+                className="rounded-lg border p-3 text-center"
+                style={{ borderColor: `${bucket.color}30` }}
+              >
+                <div
+                  className="text-2xl sm:text-3xl font-bold font-mono"
+                  style={{ color: bucket.color }}
+                >
+                  {bucket.count}
+                </div>
+                <div className="text-xs font-mono font-semibold" style={{ color: bucket.color }}>
+                  {bucket.label}
+                </div>
+                <div className="text-[10px] font-mono text-[#7d8590]">
+                  {bucket.sublabel}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Full-width stacked bar */}
+          <div className="flex h-3 rounded-full overflow-hidden">
+            {clean > 0 && (
+              <div style={{ width: `${(clean / total) * 100}%`, backgroundColor: "#22c55e" }} />
+            )}
+            {low > 0 && (
+              <div style={{ width: `${(low / total) * 100}%`, backgroundColor: "#3b82f6" }} />
+            )}
+            {moderate > 0 && (
+              <div style={{ width: `${(moderate / total) * 100}%`, backgroundColor: "#f59e0b" }} />
+            )}
+            {high > 0 && (
+              <div style={{ width: `${(high / total) * 100}%`, backgroundColor: "#ef4444" }} />
+            )}
+          </div>
+          <div className="text-[10px] font-mono text-[#7d8590] mt-1.5 text-center">
+            {Math.round((clean / total) * 100)}% of articles have minimal sensationalism
+          </div>
         </div>
       )}
 
-      {/* Top articles */}
-      <h3 className="text-sm font-semibold text-[#e6edf3] mb-1 font-mono">
+      {/* Top flagged articles */}
+      <h3 className="text-sm font-semibold text-[#e6edf3] mb-3 font-mono">
         Most Sensationalized Headlines
       </h3>
-      <p className="text-[10px] sm:text-xs text-[#7d8590] font-mono mb-3">
-        Ranked by charged language, sentiment extremity, and clickbait signals
-      </p>
       <div className="space-y-2">
         {data.slice(0, 15).map((article, i) => {
           const color = getBSColor(article.bs_score);
@@ -177,11 +145,6 @@ export default function BSDetector({
                   <span className="text-[#7d8590] text-[10px] font-mono">
                     {article.date}
                   </span>
-                  {article.author && (
-                    <span className="text-[#7d8590] text-[10px] font-mono hidden sm:inline">
-                      {article.author}
-                    </span>
-                  )}
                 </div>
                 {article.flagged_terms.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">

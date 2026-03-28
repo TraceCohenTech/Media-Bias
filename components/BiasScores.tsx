@@ -1,5 +1,7 @@
 "use client";
 
+import { OUTLET_COLORS } from "@/lib/constants";
+
 interface BiasScore {
   outlet: string;
   bias_score: number;
@@ -10,14 +12,6 @@ interface BiasScore {
   neutral_count: number;
 }
 
-const OUTLET_COLORS: Record<string, string> = {
-  NYT: "#3b82f6",
-  WSJ: "#f59e0b",
-  Wired: "#ef4444",
-  "The Atlantic": "#10b981",
-  TechCrunch: "#8b5cf6",
-  "The Guardian": "#06b6d4",
-};
 
 export default function BiasScores({ data }: { data: BiasScore[] }) {
   if (data.length === 0) return null;

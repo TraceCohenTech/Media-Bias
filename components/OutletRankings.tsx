@@ -11,15 +11,8 @@ import {
   Cell,
   ReferenceLine,
 } from "recharts";
+import { OUTLET_COLORS } from "@/lib/constants";
 
-const OUTLET_COLORS: Record<string, string> = {
-  NYT: "#3b82f6",
-  WSJ: "#f59e0b",
-  Wired: "#ef4444",
-  "The Atlantic": "#10b981",
-  TechCrunch: "#8b5cf6",
-  "The Guardian": "#06b6d4",
-};
 
 interface BiasScore {
   outlet: string;
