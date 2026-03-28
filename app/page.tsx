@@ -95,7 +95,7 @@ export default function Home() {
             Loading analysis...
           </div>
           <div className="text-[#7d8590] font-mono text-xs">
-            304+ tech articles across 6 outlets
+            Analyzing tech coverage across 17 outlets
           </div>
         </div>
       </div>
@@ -138,8 +138,9 @@ export default function Home() {
             <span className="text-[#e6edf3] font-semibold">
               {data.total_articles} articles
             </span>{" "}
-            across NYT, WSJ, Wired, The Atlantic, TechCrunch, and The Guardian.
-            Every headline scored for bias, sensationalism, and charged language.
+            across 17 major outlets including NYT, WSJ, Wired, TechCrunch,
+            The Verge, Forbes, Fortune, CNBC, and more.
+            Every headline scored for sentiment, sensationalism, and charged language.
           </p>
 
           {/* Key finding callout */}
@@ -214,7 +215,7 @@ export default function Home() {
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
                 <span className="text-[#e6edf3]">RSS Feeds</span>
-                <span className="text-[#7d8590]">12 endpoints</span>
+                <span className="text-[#7d8590]">24 endpoints</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
@@ -249,7 +250,7 @@ export default function Home() {
         {/* ═══════ 2. OUTLET FINGERPRINTS — Radar + Rankings ═══════ */}
         <Section
           title="Outlet Fingerprints"
-          description="Each outlet has a unique coverage profile. The radar shows how sentiment varies by topic — an outlet might be bullish on AI but hostile to crypto regulation. The rankings show overall lean and sensationalism level."
+          description="Each outlet covers tech differently. The radar (top 8 outlets by volume) maps sentiment across topics — an outlet bullish on AI might be hostile to crypto. The rankings show overall lean and sensationalism for all outlets."
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <OutletRadar data={data.heatmap || {}} />

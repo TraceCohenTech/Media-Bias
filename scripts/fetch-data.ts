@@ -8,17 +8,31 @@ const parser = new XMLParser({
   processEntities: false,
 });
 
+function decodeEntities(text: string): string {
+  const entities: Record<string, string> = {
+    "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"',
+    "&apos;": "'", "&nbsp;": " ", "&ndash;": "\u2013", "&mdash;": "\u2014",
+    "&lsquo;": "\u2018", "&rsquo;": "\u2019", "&ldquo;": "\u201C", "&rdquo;": "\u201D",
+    "&hellip;": "\u2026", "&trade;": "\u2122", "&copy;": "\u00A9", "&reg;": "\u00AE",
+  };
+  return text
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&[a-z]+;/gi, (match) => entities[match.toLowerCase()] || match);
+}
+
 function stripHtml(html: any): string {
   if (!html) return "";
   if (typeof html !== "string") {
     if (typeof html === "object" && html["#text"]) return stripHtml(html["#text"]);
     return String(html);
   }
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&[a-z]+;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return decodeEntities(
+    html
+      .replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 // ── Keyword-based sentiment analysis (no API needed) ──
@@ -107,12 +121,44 @@ const TECH_KEYWORDS = [
   "electric vehicle", "ev", "tesla", "spacex", "rocket",
 ];
 
+// Headlines containing these are definitely NOT tech
+const EXCLUDE_KEYWORDS = [
+  "trump signs", "trump order", "border wall", "immigration", "abortion",
+  "gun control", "shooting", "hurricane", "earthquake", "flood",
+  "ukraine", "gaza", "houthi", "iran war", "military strike",
+  "nfl ", "nba ", "mlb ", "ufc ", "super bowl", "world cup",
+  "recipe", "cooking", "fashion week", "oscars", "grammy",
+  "tsa workers", "senate vote", "house gop", "supreme court nomination",
+  "jack daniel", "bourbon", "whiskey", "wine",
+];
+
+// Strong tech keywords — one match is enough
+const STRONG_TECH = [
+  "artificial intelligence", "machine learning", "startup", "venture capital",
+  "openai", "anthropic", "nvidia", "saas", "cybersecurity", "blockchain",
+  "ipo", "series a", "series b", "seed round", "unicorn", "y combinator",
+  "silicon valley", "generative ai", "llm", "gpt", "deep learning",
+  "self-driving", "autonomous", "semiconductor", "gpu",
+];
+
 function isTechRelevant(headline: string, summary: string): boolean {
   const text = `${headline} ${summary}`.toLowerCase();
+
+  // Hard exclude non-tech content
+  for (const ex of EXCLUDE_KEYWORDS) {
+    if (text.includes(ex)) return false;
+  }
+
+  // Strong match — one keyword is enough
+  for (const kw of STRONG_TECH) {
+    if (text.includes(kw)) return true;
+  }
+
+  // Weak match — need 2+ keyword hits from the general list
   let matches = 0;
   for (const kw of TECH_KEYWORDS) {
     if (text.includes(kw)) matches++;
-    if (matches >= 1) return true;
+    if (matches >= 2) return true;
   }
   return false;
 }
@@ -644,7 +690,7 @@ async function main() {
     .map((a) => ({
       outlet: a.outlet,
       date: a.date,
-      headline: a.headline,
+      headline: decodeEntities(a.headline),
       author: a.author,
       bs_score: a.bs_score,
       sentiment_score: a.sentiment_score,
@@ -676,11 +722,11 @@ async function main() {
   // Recent articles (all)
   const recentArticles = [...finalArticles]
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 300)
+    .slice(0, 500)
     .map((a) => ({
       outlet: a.outlet,
       date: a.date,
-      headline: a.headline,
+      headline: decodeEntities(a.headline),
       author: a.author,
       sentiment_score: a.sentiment_score,
       sentiment_label: a.sentiment_label,

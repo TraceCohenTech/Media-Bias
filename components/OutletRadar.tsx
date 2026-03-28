@@ -31,8 +31,16 @@ interface HeatmapData {
 }
 
 export default function OutletRadar({ data }: { data: HeatmapData }) {
-  const outlets = Object.keys(data);
-  if (outlets.length === 0) return null;
+  const allOutlets = Object.keys(data);
+  if (allOutlets.length === 0) return null;
+
+  // Limit to top 8 outlets by total topic coverage to keep readable
+  const outletCoverage = allOutlets.map((o) => ({
+    outlet: o,
+    count: Object.values(data[o] || {}).reduce((sum: number, v: any) => sum + (v.count || 0), 0),
+  }));
+  outletCoverage.sort((a, b) => b.count - a.count);
+  const outlets = outletCoverage.slice(0, 8).map((o) => o.outlet);
 
   const topics = Object.keys(SHORT_TOPICS);
 
