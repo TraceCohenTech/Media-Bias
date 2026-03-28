@@ -410,9 +410,11 @@ async function main() {
     "cloud computing OR SaaS OR platform",
   ];
 
-  // One combined tech query per outlet — fast and effective
+  // 3 queries per outlet for breadth
   for (const [outlet, domain] of Object.entries(OUTLET_DOMAINS)) {
-    GDELT_QUERIES.push({ query: `domain:${domain} (tech OR AI OR startup OR CEO OR founder OR venture OR software OR crypto)`, label: `${outlet} tech`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} (technology OR tech OR startup OR AI OR software)`, label: `${outlet} tech+AI`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} (CEO OR founder OR venture OR investor OR billion)`, label: `${outlet} VC+CEO`, outlet, timespan: "120d" });
+    GDELT_QUERIES.push({ query: `domain:${domain} (crypto OR cybersecurity OR antitrust OR IPO OR acquisition)`, label: `${outlet} misc`, outlet, timespan: "120d" });
   }
 
   console.log(`   ${GDELT_QUERIES.length} GDELT queries queued\n`);
